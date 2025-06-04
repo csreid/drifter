@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="car_robot">
+	<xacro:arg name="suspend" default="true" />
+
+	<!-- Vehicle parameters -->
+	<xacro:property name="chassis_length" value="0.4" />
+	<xacro:property name="chassis_width" value="0.125" />
+	<xacro:property name="chassis_height" value="0.05" />
+	<xacro:property name="chassis_mass" value="8.0" />
+
+	<xacro:property name="wheel_radius" value="0.07" />
+	<xacro:property name="wheel_width" value="0.02" />
+	<xacro:property name="wheel_mass" value="0.5" />
+
+	<!-- Distance between front and rear axles -->
+	<xacro:property name="wheelbase" value=".25" />
+
+	<!-- Distance between left and right wheels -->
+	<xacro:property name="track_width" value="0.25" />
+
+	<xacro:property name="suspension_travel" value="0.1" />
+	<xacro:property name="suspension_damping" value="1000.0" />
+	<xacro:property name="suspension_stiffness" value="100.0" />
+
+	<xacro:property name="max_steering_angle" value="0.5" />
+
+	<!-- Materials -->
+	<material name="blue">
+		<color rgba="0 0 0.8 1"/>
+	</material>
+
+	<material name="black">
+		<color rgba="0.1 0.1 0.1 1"/>
+	</material>
+
+	<!-- Wheel macro -->
+	<xacro:macro name="wheel" params="prefix">
+		<link name="${prefix}_wheel">
+			<visual>
+				<geometry>
+					<!-- <mesh filename="./wheels/wheel_and_tire.dae" scale="2.0 2.0 2.0" /> -->
+					<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+				</geometry>
+				<material name="black"/>
+				<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+			</visual>
+			<collision>
+				<geometry>
+					<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+				</geometry>
+				<origin xyz="0 0 0" rpy="1.5708 0 0"/>
+			</collision>
+			<inertial>
+				<mass value="${wheel_mass}"/>
+				<inertia
+					ixx="${wheel_mass * (3*wheel_radius*wheel_radius + wheel_width*wheel_width) / 12}"
+					iyy="${wheel_mass * wheel_radius*wheel_radius / 2}"
+					izz="${wheel_mass * (3*wheel_radius*wheel_radius + wheel_width*wheel_width) / 12}"
+					ixy="0" ixz="0" iyz="0"
+				/>
+			</inertial>
+		</link>
+	</xacro:macro>
+
+	<!-- Suspension link macro -->
+	<xacro:macro name="suspension_link" params="prefix">
+		<link name="${prefix}_suspension_link">
+			<inertial>
+				<mass value="0.1"/>
+				<inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+			</inertial>
+		</link>
+	</xacro:macro>
+
+	<!-- Steering link macro (for front wheels) -->
+	<xacro:macro name="steering_link" params="prefix">
+		<link name="${prefix}_steering_link">
+			<inertial>
+				<mass value="0.1"/>
+				<inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+			</inertial>
+		</link>
+	</xacro:macro>
+
+	<!-- Front wheel assembly macro (suspension + steering + wheel) -->
+	<xacro:macro name="front_wheel_assembly" params="prefix x_pos y_pos">
+		<xacro:if value="$(arg suspend)">
+			<!-- Suspension -->
+			<xacro:suspension_link prefix="${prefix}" />
+			<joint name="${prefix}_suspension" type="prismatic">
+				<parent link="base_link"/>
+				<child link="${prefix}_suspension_link"/>
+				<axis xyz="0 0 1"/>
+				<origin xyz="${x_pos} ${y_pos} ${-chassis_height/2}" rpy="0 0 0"/>
+				<limit lower="${-suspension_travel}" upper="${suspension_travel}" effort="100" velocity="10"/>
+			</joint>
+
+			<!-- Steering -->
+			<xacro:steering_link prefix="${prefix}" />
+			<joint name="${prefix}_steering_joint" type="revolute">
+				<parent link="${prefix}_suspension_link"/>
+				<child link="${prefix}_steering_link"/>
+				<axis xyz="0 0 1"/>
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<limit lower="${-max_steering_angle}" upper="${max_steering_angle}" effort="100" velocity="10"/>
+			</joint>
+
+			<!-- Wheel (with suspension) -->
+			<xacro:wheel prefix="${prefix}" />
+			<joint name="${prefix}_wheel_joint" type="continuous">
+				<parent link="${prefix}_steering_link"/>
+				<child link="${prefix}_wheel"/>
+				<axis xyz="0 1 0"/>
+				<origin xyz="0 0 ${-wheel_radius + chassis_height - 0.05}" rpy="0 0 0"/>
+			</joint>
+		</xacro:if>
+
+		<xacro:unless value="$(arg suspend)">
+			<!-- Steering (direct mount, no suspension) -->
+			<xacro:steering_link prefix="${prefix}" />
+			<joint name="${prefix}_steering_joint" type="revolute">
+				<parent link="base_link"/>
+				<child link="${prefix}_steering_link"/>
+				<axis xyz="0 0 1"/>
+				<origin xyz="${x_pos} ${y_pos} ${-chassis_height/2}" rpy="0 0 0"/>
+				<limit lower="${-max_steering_angle}" upper="${max_steering_angle}" effort="100" velocity="10"/>
+			</joint>
+
+			<!-- Wheel (no suspension) -->
+			<xacro:wheel prefix="${prefix}" />
+			<joint name="${prefix}_wheel_joint" type="continuous">
+				<parent link="${prefix}_steering_link"/>
+				<child link="${prefix}_wheel"/>
+				<axis xyz="0 1 0"/>
+				<origin xyz="0 0 ${-wheel_radius + chassis_height - 0.05}" rpy="0 0 0"/>
+			</joint>
+		</xacro:unless>
+	</xacro:macro>
+
+	<!-- Rear wheel assembly macro (suspension + wheel, no steering) -->
+	<xacro:macro name="rear_wheel_assembly" params="prefix x_pos y_pos">
+		<xacro:if value="$(arg suspend)">
+			<!-- Suspension -->
+			<xacro:suspension_link prefix="${prefix}" />
+			<joint name="${prefix}_suspension" type="prismatic">
+				<parent link="base_link"/>
+				<child link="${prefix}_suspension_link"/>
+				<axis xyz="0 0 1"/>
+				<origin xyz="${x_pos} ${y_pos} ${-(chassis_height/2)}" rpy="0 0 0"/>
+				<limit lower="${-suspension_travel}" upper="${suspension_travel}" effort="100" velocity="10"/>
+			</joint>
+
+			<!-- Wheel (with suspension) -->
+			<xacro:wheel prefix="${prefix}" />
+			<joint name="${prefix}_wheel_joint" type="continuous">
+				<parent link="${prefix}_suspension_link"/>
+				<child link="${prefix}_wheel"/>
+				<axis xyz="0 1 0"/>
+				<origin xyz="0 0 ${-wheel_radius + chassis_height - 0.05}" rpy="0 0 0"/>
+			</joint>
+		</xacro:if>
+
+		<xacro:unless value="$(arg suspend)">
+			<!-- Wheel (direct mount, no suspension) -->
+			<xacro:wheel prefix="${prefix}" />
+			<joint name="${prefix}_wheel_joint" type="continuous">
+				<parent link="base_link"/>
+				<child link="${prefix}_wheel"/>
+				<axis xyz="0 1 0"/>
+				<origin xyz="${x_pos} ${y_pos} ${-wheel_radius - chassis_height/2}" rpy="0 0 0"/>
+			</joint>
+		</xacro:unless>
+	</xacro:macro>
+
+	<!-- Main chassis -->
+	<link name="base_link">
+		<visual>
+			<geometry>
+				<box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+			</geometry>
+			<material name="blue"/>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+		</visual>
+		<collision>
+			<geometry>
+				<box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+			</geometry>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+		</collision>
+		<inertial>
+			<mass value="${chassis_mass}"/>
+			<inertia ixx="${chassis_mass * (chassis_width*chassis_width + chassis_height*chassis_height) / 12}"
+							 iyy="${chassis_mass * (chassis_length*chassis_length + chassis_height*chassis_height) / 12}"
+							 izz="${chassis_mass * (chassis_length*chassis_length + chassis_width*chassis_width) / 12}"
+							 ixy="0" ixz="0" iyz="0"/>
+		</inertial>
+	</link>
+
+	<!-- Generate all four wheels -->
+	<xacro:front_wheel_assembly prefix="front_left"	x_pos="${wheelbase/2}"	y_pos="${track_width/2}" />
+	<xacro:front_wheel_assembly prefix="front_right" x_pos="${wheelbase/2}"	y_pos="${-track_width/2}" />
+	<xacro:rear_wheel_assembly	prefix="rear_left"	 x_pos="${-wheelbase/2}" y_pos="${track_width/2}" />
+	<xacro:rear_wheel_assembly	prefix="rear_right"	x_pos="${-wheelbase/2}" y_pos="${-track_width/2}" />
+
+</robot>
