@@ -2,7 +2,7 @@ import numpy as np
 from noise import pnoise2
 
 
-def generate_base_terrain(width, height, scale=50.0):
+def generate_base_terrain(width, height, scale=500.0):
 	terrain = np.zeros((height, width))
 	for y in range(height):
 		for x in range(width):

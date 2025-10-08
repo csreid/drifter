@@ -22,7 +22,7 @@
 	<xacro:property name="suspension_damping" value="1000.0" />
 	<xacro:property name="suspension_stiffness" value="100.0" />
 
-	<xacro:property name="max_steering_angle" value="0.5" />
+	<xacro:property name="max_steering_angle" value="1.5" />
 
 	<!-- Materials -->
 	<material name="blue">
@@ -38,8 +38,8 @@
 		<link name="${prefix}_wheel">
 			<visual>
 				<geometry>
-					<!-- <mesh filename="./wheels/wheel_and_tire.dae" scale="2.0 2.0 2.0" /> -->
-					<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+					<mesh filename="./wheels/wheel_and_tire.dae" scale="2.0 2.0 2.0" />
+					<!-- <cylinder radius="${wheel_radius}" length="${wheel_width}"/> -->
 				</geometry>
 				<material name="black"/>
 				<origin xyz="0 0 0" rpy="1.5708 0 0"/>
