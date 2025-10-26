@@ -11,6 +11,7 @@ from batched_memory import (
 	BatchedStateDelta,
 )
 
+
 def main():
 	memory = MPPIMemory(100_000)
 	env = DrifterEnv(gui=True)
@@ -44,5 +45,6 @@ def main():
 
 	memory.to_pandas().to_csv("transitions.csv", index=False)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 	main()

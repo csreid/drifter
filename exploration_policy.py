@@ -113,14 +113,18 @@ class ExplorationPolicy:
 		if maneuver == ManeuverType.HIGH_SPEED_TURN:
 			params["steering_direction"] = np.random.choice([-1, 1])
 			params["steering_magnitude"] = np.random.uniform(0.7, 1.0)
-			params["throttle"] = np.random.uniform(0.6, 1.0) * np.random.choice([-1, 1])
+			params["throttle"] = np.random.uniform(0.6, 1.0) * np.random.choice(
+				[-1, 1]
+			)
 			params["phase"] = "accelerate"  # Start by accelerating
 			params["accel_steps"] = self._maneuver_duration // 2
 
 		elif maneuver == ManeuverType.ZIGZAG:
 			params["frequency"] = np.random.uniform(0.2, 0.5)
 			params["amplitude"] = np.random.uniform(0.6, 0.9)
-			params["throttle"] = np.random.uniform(0.5, 0.8) * np.random.choice([-1, 1])
+			params["throttle"] = np.random.uniform(0.5, 0.8) * np.random.choice(
+				[-1, 1]
+			)
 			params["start_step"] = self._total_steps
 
 		elif maneuver == ManeuverType.EMERGENCY_CORRECTION:
@@ -131,14 +135,18 @@ class ExplorationPolicy:
 			)
 
 		elif maneuver == ManeuverType.ACCELERATION_BURST:
-			params["throttle"] = np.random.uniform(0.8, 1.0) * np.random.choice([-1, 1])
+			params["throttle"] = np.random.uniform(0.8, 1.0) * np.random.choice(
+				[-1, 1]
+			)
 			params["steering_noise"] = np.random.uniform(0.1, 0.3)
 
 		elif maneuver == ManeuverType.DRIFT_ATTEMPT:
 			params["entry_speed_steps"] = self._maneuver_duration // 3
 			params["turn_direction"] = np.random.choice([-1, 1])
 			params["turn_sharpness"] = np.random.uniform(0.8, 1.0)
-			params["drift_throttle"] = np.random.uniform(0.4, 0.7) * np.random.choice([-1, 1])
+			params["drift_throttle"] = np.random.uniform(
+				0.4, 0.7
+			) * np.random.choice([-1, 1])
 			params["phase"] = "accelerate"
 
 		return params

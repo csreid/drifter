@@ -39,7 +39,9 @@ class MPPI:
 			hidden_size=512,
 			hidden_layers=2,
 		)
-		self._env_model.load_state_dict(torch.load('model.pt', weights_only=True))
+		self._env_model.load_state_dict(
+			torch.load("model.pt", weights_only=True)
+		)
 		self._env_model.eval()
 
 		# ---- Learning stuff ---#
@@ -57,7 +59,9 @@ class MPPI:
 		self._U = np.zeros((self._horizon, self._action_dim))
 
 	def _fit_batch(self, actions, observations, targets):
-		pred_X = BatchedStateDelta.from_tensor(self._env_model(observations, actions))
+		pred_X = BatchedStateDelta.from_tensor(
+			self._env_model(observations, actions)
+		)
 		loss, per_output_loss = self._loss_fn(pred_X, targets)
 
 		self._opt.zero_grad()
@@ -76,20 +80,22 @@ class MPPI:
 	def _compute_cost(self, states: BatchedState, actions: BatchedAction):
 		"""Compute cost for a trajectory."""
 		position = states.position
-		#local_goal_pos = states.local_goal_position
-		#is_flippeds = torch.sigmoid(states.is_flipped)
+		# local_goal_pos = states.local_goal_position
+		# is_flippeds = torch.sigmoid(states.is_flipped)
 		absolute_goal_position = states.absolute_goal_position
 
-		distances = torch.norm((absolute_goal_position - position)._tensor, dim=-1)
+		distances = torch.norm(
+			(absolute_goal_position - position)._tensor, dim=-1
+		)
 
 		terminal_cost = distances[:, -1]
 
 		path_cost = distances.mean(dim=-1)
-		velocity_cost = torch.norm(states.velocity._tensor, dim=-1) / 100.
+		velocity_cost = torch.norm(states.velocity._tensor, dim=-1) / 100.0
 
 		action_cost = 0.01 * (actions._tensor**2).sum(dim=-1).sum(dim=-1)
 
-		return terminal_cost + path_cost #+ action_cost #+ velocity_cost
+		return terminal_cost + path_cost  # + action_cost #+ velocity_cost
 
 	def _rollout_batch(self, initial_state, action_sequences):
 		"""Rollout a batch of action sequences"""
@@ -108,9 +114,7 @@ class MPPI:
 			state_deltas = BatchedStateDelta.from_tensor(
 				self._env_model(batch_input)
 			)
-			states = (
-				states + state_deltas
-			)
+			states = states + state_deltas
 			trajectory_states.append(states._tensor)
 
 		return torch.stack(trajectory_states, dim=1)
@@ -229,20 +233,20 @@ if __name__ == "__main__":
 		transition = Transition(
 			action=Action.from_tensor(torch.tensor(a)),
 			state=State.from_tensor(torch.tensor(s)),
-			next_state=State.from_tensor(torch.tensor(sp))
+			next_state=State.from_tensor(torch.tensor(sp)),
 		)
 
 		memory.add(transition)
 
-#		if (i+j) > 10:
-#			actions, obs_s, targets = memory.sample(128)
-#			loss, loss_components = mppi_controller._fit_batch(
-#				actions,
-#				obs_s,
-#				targets
-#			)
-#			writer.add_scalar(f"Loss", loss, i)
-#			writer.add_scalars("loss_components", loss_components, i)
+		# if (i+j) > 10:
+		# actions, obs_s, targets = memory.sample(128)
+		# loss, loss_components = mppi_controller._fit_batch(
+		# actions,
+		# obs_s,
+		# targets
+		# )
+		# writer.add_scalar(f"Loss", loss, i)
+		# writer.add_scalars("loss_components", loss_components, i)
 
 		# writer.add_scalar(f"Loss", loss, i + j)
 		writer.add_scalar(

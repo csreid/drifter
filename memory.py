@@ -5,14 +5,20 @@ from typing import Union, Self, TypeGuard, TYPE_CHECKING
 import random
 
 if TYPE_CHECKING:
-	from batched_memory import BatchedAction, BatchedState, BatchedTransition, BatchedStateDelta
+	from batched_memory import (
+		BatchedAction,
+		BatchedState,
+		BatchedTransition,
+		BatchedStateDelta,
+	)
+
 
 @dataclass
 class Vector3:
 	_tensor: torch.Tensor
 
-	def to(dev):
-		self._tensor.to(dev)
+	def to(self, dev):
+		self._tensor.to(self, dev)
 
 	@property
 	def x(self):
@@ -47,8 +53,8 @@ class Vector3:
 class Quaternion:
 	_tensor: torch.Tensor
 
-	def to(dev):
-		self._tensor.to(dev)
+	def to(self, dev):
+		self._tensor.to(self, dev)
 
 	def __post_init__(self):
 		assert len(self._tensor) == 4
@@ -107,6 +113,7 @@ class Quaternion:
 
 		return type(self).from_tensor(q_new)
 
+
 @dataclass
 class Image:
 	_tensor: torch.Tensor
@@ -123,6 +130,7 @@ class Image:
 	def __add__(self, other):
 		return other
 
+
 @dataclass
 class State:
 	position: Vector3
@@ -133,8 +141,8 @@ class State:
 	is_flipped: torch.Tensor
 	_tensor: torch.Tensor
 
-	def to(dev):
-		self._tensor.to(dev)
+	def to(self, dev):
+		self._tensor.to(self, dev)
 
 	@classmethod
 	def from_tensor(cls, tensor) -> Self:
@@ -222,14 +230,15 @@ class StateDelta(State):
 		# Delegate to `other`'s add method
 		return other + self
 
+
 @dataclass
 class Action:
 	steering_input: float
 	throttle_input: float
 	_tensor: torch.Tensor
 
-	def to(dev):
-		self._tensor.to(dev)
+	def to(self, dev):
+		self._tensor.to(self, dev)
 
 	@classmethod
 	def from_tensor(cls, tensor) -> "Action":
@@ -246,10 +255,11 @@ class Transition:
 	action: Action
 	next_state: State
 
-	def to(dev):
+	def to(self, dev):
 		self.state.to(dev)
 		self.action.to(dev)
 		self.next_state.to(dev)
+
 
 class MPPIMemory:
 	"""
@@ -295,8 +305,16 @@ class MPPIMemory:
 			self.transitions[self._idx] = t
 			self._idx = (self._idx + 1) % self.max_len
 
-	def sample(self, n: int) -> tuple["BatchedAction", "BatchedState", "BatchedStateDelta"]:
-		from batched_memory import BatchedAction, BatchedState, BatchedTransition, BatchedStateDelta
+	def sample(
+		self, n: int
+	) -> tuple["BatchedAction", "BatchedState", "BatchedStateDelta"]:
+		from batched_memory import (
+			BatchedAction,
+			BatchedState,
+			BatchedTransition,
+			BatchedStateDelta,
+		)
+
 		"""
 		Randomly sample n transitions from the buffer for environment model training.
 
@@ -342,7 +360,7 @@ class MPPIMemory:
 		inputs = torch.cat([obs_tensor, action_tensor], dim=-1)
 		nexts = torch.stack(next_observations)
 
-		#targets = obs_diff(obs_tensor, nexts)
+		# targets = obs_diff(obs_tensor, nexts)
 		batched_action = BatchedAction.from_tensor(action_tensor)
 		batched_state = BatchedState.from_tensor(obs_tensor)
 		batched_next_state = BatchedState.from_tensor(nexts)

@@ -240,10 +240,7 @@ def main():
 			total=len(train_dataloader),
 		):
 			pred_X = BatchedStateDelta.from_tensor(
-				env_model(
-					state_X.to(dev),
-					action_X.to(dev)
-				)
+				env_model(state_X.to(dev), action_X.to(dev))
 			)
 			loss, per_output_loss = loss_fn(pred_X, batch_Y.to(dev))
 
@@ -397,6 +394,7 @@ class EnvModelWithSAC(Module):
 	def predict_next_state(self, obs, action):
 		"""Predict state delta using the dynamics model"""
 		return self._one_forward(obs, action)
+
 
 if __name__ == "__main__":
 	main()
