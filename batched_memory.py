@@ -271,7 +271,7 @@ class BatchedStateDelta:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(dev)
+		self._tensor = self._tensor.to(dev)
 		return self
 
 	@classmethod
@@ -356,7 +356,7 @@ class BatchedAction:
 	_tensor: torch.Tensor  # Shape: (batch_size, 2)
 
 	def to(self, dev):
-		self._tensor.to(dev)
+		self._tensor = self._tensor.to(dev)
 		return self
 
 	@classmethod
@@ -394,9 +394,9 @@ class BatchedTransition:
 	next_state: BatchedState
 
 	def to(self, dev):
-		self.state.to(dev)
-		self.action.to(dev)
-		self.next_state.to(dev)
+		self.state = self.state.to(dev)
+		self.action = self.action.to(dev)
+		self.next_state = self.next_state.to(dev)
 
 		return self
 
