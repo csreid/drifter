@@ -18,7 +18,7 @@ class Vector3:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@property
 	def x(self):
@@ -54,7 +54,7 @@ class Quaternion:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	def __post_init__(self):
 		assert len(self._tensor) == 4
@@ -142,7 +142,7 @@ class State:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor) -> Self:
@@ -238,7 +238,7 @@ class Action:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor) -> "Action":

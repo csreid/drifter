@@ -22,7 +22,7 @@ class BatchedVector3:
 	_tensor: torch.Tensor  # Shape: (batch_size, 3)
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedVector3":
@@ -59,7 +59,7 @@ class BatchedImage:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	def __getitem__(self, idx):
 		return Image.from_tensor(self._tensor[idx])
@@ -78,7 +78,7 @@ class BatchedQuaternion:
 	_tensor: torch.Tensor  # Shape: (batch_size, 4)
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedQuaternion":
@@ -163,7 +163,7 @@ class BatchedState:
 	_tensor: torch.Tensor  # Shape: (batch_size, 17)
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedState":
@@ -267,7 +267,7 @@ class BatchedStateDelta:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> Self:
@@ -351,7 +351,7 @@ class BatchedAction:
 	_tensor: torch.Tensor  # Shape: (batch_size, 2)
 
 	def to(self, dev):
-		self._tensor.to(self, dev)
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedAction":
