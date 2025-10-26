@@ -5,7 +5,7 @@ description = ""
 authors = [
     {name = "Cameron Reid",email = "csreid.cr@gmail.com"}
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "pybullet (>=3.2.7,<4.0.0)",
     "numpy (>=2.2.5,<3.0.0)",
@@ -24,6 +24,12 @@ dependencies = [
     "pyyaml>=6.0.2",
     "tabulate>=0.9.0",
     "ipython>=9.6.0",
+    "jupyterlab>=4.4.9",
+    "pytorch-mppi>=0.8.0",
+    "types-tqdm>=4.67.0.20250809",
+    "types-tabulate>=0.9.0.20241207",
+    "pandas-stubs>=2.3.2.250926",
+    "mypy>=1.18.2",
 ]
 
 [tool.ruff]
@@ -34,6 +40,34 @@ indent-style="tab"
 
 [tool.uv]
 package = false
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "pybullet.*"
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "noise.*"
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "scipy.*"
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = "scipy.*"
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = [
+    "pybullet.*",
+    "pybullet_data.*",  # Add these
+    "xacro.*",
+    "cv2.*",
+    "pygame.*",
+    "gymnasium.*",
+    "stable_baselines3.*",
+    "scipy.*",
+    "IPython.*",
+    "pytorch_mppi.*",  # Add this
+]
+ignore_missing_imports = true
 
 [build-system]
 requires = ["setuptools"]

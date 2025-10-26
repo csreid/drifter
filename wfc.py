@@ -112,7 +112,7 @@ class WFCTerrainGenerator:
 			return 0  # Already collapsed
 		return len(self.possible_states[(x, y)])
 
-	def get_lowest_entropy_cell(self) -> Tuple[int, int]:
+	def get_lowest_entropy_cell(self) -> Tuple[int, int] | None:
 		"""Find cell with lowest entropy > 0"""
 		min_entropy = float("inf")
 		candidates = []

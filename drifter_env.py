@@ -5,6 +5,16 @@ from gymnasium import spaces
 import gymnasium as gym
 import time
 
+observation_space = gym.spaces.Box(
+	low=-np.inf, high=np.inf, shape=(17,), dtype=np.float32
+)
+action_space = spaces.Box(
+	low=np.array([-1.0, -1.0]),
+	high=np.array([1.0, 1.0]),
+	shape=(2,),
+	dtype=np.float32,
+)
+
 
 class DrifterEnv(gym.Env):
 	def __init__(self, action_duration=0.1, gui: bool = False):
@@ -24,19 +34,15 @@ class DrifterEnv(gym.Env):
 		# }
 		# )
 
-		self.observation_space = gym.spaces.Box(
-			low=-np.inf, high=np.inf, shape=(11,), dtype=np.float32
-		)
+		self.observation_space = observation_space
 
-#		self.action_space = spaces.Box(
-#			low=1., high=1., shape=(2,), dtype=np.float32
-#		)
+		# self.action_space = spaces.Box(
+		# low=1., high=1., shape=(2,), dtype=np.float32
+		# )
 
-		self.action_space = spaces.Box(
-			low=np.array([-1., -0.3]), high=np.array([1., 0.3]), shape=(2,), dtype=np.float32
-		)
+		self.action_space = action_space
 
-		self.sim = RCCarSimulation(gui=self.gui, generated_terrain=False)
+		self.sim = RCCarSimulation(gui=self.gui, generated_terrain=True)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False
@@ -57,14 +63,23 @@ class DrifterEnv(gym.Env):
 	def _get_obs(self):
 		simstate = self.sim.get_state()
 
-		# pos = np.array(simstate["position"])
-		goal_pos = np.array(simstate["local_goal_pos"])
+		pos = np.array(simstate["position"])
+		local_goal_pos = np.array(simstate["local_goal_pos"])
+		goal_pos = np.array(simstate["goal_pos"])
 		orn = np.array(simstate["orientation"])
-		#omega = np.array(simstate["angular_velocity_local"])
+		# omega = np.array(simstate["angular_velocity_local"])
 		vel = np.array(simstate["velocity_local"])
 		is_flipped = np.array([simstate["is_flipped"]]).astype("float")
 
-		oned_obs = [goal_pos, vel, is_flipped, orn]
+		# oned_obs = [pos, local_goal_pos, vel, is_flipped, goal_pos, orn,]
+		oned_obs = [
+			pos,
+			local_goal_pos,
+			vel,
+			is_flipped,
+			goal_pos,
+			orn,
+		]
 		# oned_obs = [pos, orn, vel]
 		obs = np.concatenate(oned_obs)
 
@@ -83,7 +98,6 @@ class DrifterEnv(gym.Env):
 		distance = np.linalg.norm(goal_position - pos)
 
 		return distance
-
 
 	def _compute_reward(self):
 		simstate = self.sim.get_state()
@@ -164,6 +178,8 @@ class DrifterEnv(gym.Env):
 
 		if distance < 2.0 or self.sim.is_flipped():
 			return True
+
+		return False
 
 	def _is_truncated(self):
 		return self.current_step > 100

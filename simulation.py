@@ -137,7 +137,7 @@ class RCCarSimulation:
 		self.spring_damping = 50.0
 		self.spring_rest_length = 0.04
 
-		self.suspend = False
+		self.suspend = True
 
 		# State variables
 		self.steering_angle = 0.0
@@ -364,10 +364,6 @@ class RCCarSimulation:
 		# Step physics simulation
 		p.stepSimulation()
 
-		# Update camera to follow car (if GUI is enabled)
-		# if self.physics_client == p.GUI:
-		# self.update_camera()
-
 		# Return current state
 		return self.get_state()
 
@@ -490,7 +486,7 @@ class RCCarSimulation:
 		p.disconnect()
 
 	def get_car_dimensions(self):
-		return (0.25, 0.25)  # wheelbase, track_width
+		return (0.535, 0.281)  # wheelbase, track_width
 
 	def _estimate_acc(self):
 		estimates = []
