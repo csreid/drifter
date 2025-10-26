@@ -18,7 +18,8 @@ class Vector3:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(dev)
+		self._tensor = self._tensor.to(dev)
+		return self
 
 	@property
 	def x(self):
@@ -54,7 +55,8 @@ class Quaternion:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(dev)
+		self._tensor = self._tensor.to(dev)
+		return self
 
 	def __post_init__(self):
 		assert len(self._tensor) == 4
@@ -238,7 +240,8 @@ class Action:
 	_tensor: torch.Tensor
 
 	def to(self, dev):
-		self._tensor.to(dev)
+		self._tensor = self._tensor.to(dev)
+		return self
 
 	@classmethod
 	def from_tensor(cls, tensor) -> "Action":
@@ -256,9 +259,11 @@ class Transition:
 	next_state: State
 
 	def to(self, dev):
-		self.state.to(dev)
-		self.action.to(dev)
-		self.next_state.to(dev)
+		self.state = self.state.to(dev)
+		self.action = self.action.to(dev)
+		self.next_state = self.next_state.to(dev)
+
+		return self
 
 
 class MPPIMemory:
