@@ -13,6 +13,9 @@ class BatchedVector3:
 
 	_tensor: torch.Tensor  # Shape: (batch_size, 3)
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedVector3":
 		assert tensor.shape[-1] == 3, f"Expected last dim=3, got {tensor.shape}"
@@ -46,6 +49,9 @@ class BatchedVector3:
 class BatchedImage:
 	_tensor: torch.Tensor
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	def __getitem__(self, idx):
 		return Image.from_tensor(self._tensor[idx])
 
@@ -60,6 +66,9 @@ class BatchedQuaternion:
 	"""Batched quaternion operations."""
 
 	_tensor: torch.Tensor  # Shape: (batch_size, 4)
+
+	def to(dev):
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedQuaternion":
@@ -142,6 +151,9 @@ class BatchedState:
 	"""Batched state with shared tensor storage."""
 
 	_tensor: torch.Tensor  # Shape: (batch_size, 17)
+
+	def to(dev):
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedState":
@@ -244,6 +256,9 @@ class BatchedStateDelta:
 
 	_tensor: torch.Tensor
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> Self:
 		assert tensor.shape[-1] == 17, (
@@ -325,6 +340,9 @@ class BatchedAction:
 
 	_tensor: torch.Tensor  # Shape: (batch_size, 2)
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedAction":
 		assert tensor.shape[-1] == 2, f"Expected last dim=2, got {tensor.shape}"
@@ -358,6 +376,11 @@ class BatchedTransition:
 	state: BatchedState
 	action: BatchedAction
 	next_state: BatchedState
+
+	def to(dev):
+		self.state.to(dev)
+		self.action.to(dev)
+		self.next_state.to(dev)
 
 	@classmethod
 	def from_list(cls, transitions: list[Transition]) -> "BatchedTransition":
