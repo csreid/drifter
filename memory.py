@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 class Vector3:
 	_tensor: torch.Tensor
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	@property
 	def x(self):
 		return self._tensor[0]
@@ -43,6 +46,9 @@ class Vector3:
 @dataclass
 class Quaternion:
 	_tensor: torch.Tensor
+
+	def to(dev):
+		self._tensor.to(dev)
 
 	def __post_init__(self):
 		assert len(self._tensor) == 4
@@ -126,6 +132,9 @@ class State:
 	velocity: Vector3
 	is_flipped: torch.Tensor
 	_tensor: torch.Tensor
+
+	def to(dev):
+		self._tensor.to(dev)
 
 	@classmethod
 	def from_tensor(cls, tensor) -> Self:
@@ -219,6 +228,9 @@ class Action:
 	throttle_input: float
 	_tensor: torch.Tensor
 
+	def to(dev):
+		self._tensor.to(dev)
+
 	@classmethod
 	def from_tensor(cls, tensor) -> "Action":
 		steer, throttle = tensor
@@ -234,6 +246,10 @@ class Transition:
 	action: Action
 	next_state: State
 
+	def to(dev):
+		self.state.to(dev)
+		self.action.to(dev)
+		self.next_state.to(dev)
 
 class MPPIMemory:
 	"""
