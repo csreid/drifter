@@ -28,7 +28,6 @@ from batched_memory import (
 )
 from torch.utils.tensorboard import SummaryWriter
 
-
 def collate_fn(batch):
 	actions = [b[0] for b in batch]
 	obs = [b[1] for b in batch]
@@ -239,10 +238,15 @@ def main():
 			leave=False,
 			total=len(train_dataloader),
 		):
+
+			action_X = action_X.to(dev)
+			state_X = state_X.to(dev)
+			batch_Y = batch_Y.to(dev)
+
 			pred_X = BatchedStateDelta.from_tensor(
-				env_model(state_X.to(dev), action_X.to(dev))
+				env_model(state_X, action_X)
 			)
-			loss, per_output_loss = loss_fn(pred_X, batch_Y.to(dev))
+			loss, per_output_loss = loss_fn(pred_X, batch_Y)
 
 			opt.zero_grad()
 			loss.backward()

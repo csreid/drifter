@@ -269,7 +269,7 @@ class MPPIMemory:
 	Useful for training environment models in MPPI control.
 	"""
 
-	def __init__(self, max_len: int):
+	def __init__(self, max_len: int, dev='cpu'):
 		"""
 		Initialize the memory buffer.
 
