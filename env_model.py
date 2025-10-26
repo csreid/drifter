@@ -210,10 +210,13 @@ class TransitionDataset(Dataset):
 
 
 def main():
+	use_gpu = torch.cuda.is_available()
+	dev = "cuda:0" if use_gpu else "cpu"
+
 	writer = SummaryWriter()
 	env_model = EnvModel(
 		action_space, observation_space, hidden_size=512, hidden_layers=2
-	)
+	).to(dev)
 	env_model.load_state_dict(torch.load("model.pt", weights_only=True))
 	opt = Adam(env_model.parameters())
 	df = pd.read_csv("transitions.csv")
@@ -236,8 +239,13 @@ def main():
 			leave=False,
 			total=len(train_dataloader),
 		):
-			pred_X = BatchedStateDelta.from_tensor(env_model(state_X, action_X))
-			loss, per_output_loss = loss_fn(pred_X, batch_Y)
+			pred_X = BatchedStateDelta.from_tensor(
+				env_model(
+					state_X.to(dev),
+					action_X.to(dev)
+				)
+			)
+			loss, per_output_loss = loss_fn(pred_X, batch_Y.to(dev))
 
 			opt.zero_grad()
 			loss.backward()
