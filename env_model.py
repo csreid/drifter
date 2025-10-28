@@ -215,7 +215,7 @@ def main():
 
 	writer = SummaryWriter()
 	env_model = EnvModel(
-		action_space, observation_space, hidden_size=512, hidden_layers=2
+		action_space, observation_space, hidden_size=2048, hidden_layers=4
 	).to(dev)
 	env_model.load_state_dict(torch.load("model.pt", weights_only=True))
 	opt = Adam(env_model.parameters())
