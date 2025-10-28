@@ -259,16 +259,23 @@ def main():
 			leave=False,
 			total=len(train_dataloader),
 		):
+			t0 = time.time()
+
 			action_X = action_X.to(dev)
 			state_X = state_X.to(dev)
 			batch_Y = batch_Y.to(dev)
+			t1 = time.time()
 
 			pred_X = BatchedStateDelta.from_tensor(env_model(state_X, action_X))
+			t2 = time.time()
+
 			loss, per_output_loss = loss_fn(pred_X, batch_Y)
+			t3 = time.time()
 
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
+			t4 = time.time()
 
 			writer.add_scalars(
 				"loss_components",
@@ -276,6 +283,7 @@ def main():
 				epoch * len(train_dataloader) + i,
 			)
 			writer.add_scalar(f"Loss", loss, epoch * len(train_dataloader) + i)
+			t5 = time.time()
 
 			with torch.no_grad():
 				action_test_X, obs_test_X, test_Y = next(iter(test_dataloader))
@@ -291,6 +299,18 @@ def main():
 				writer.add_scalar(
 					"Test Loss", test_loss, epoch * len(train_dataloader) + i
 				)
+
+			t6 = time.time()
+
+			if i % 10 == 0:
+				print(f"\nTiming breakdown:")
+				print(f"  Data transfer: {(t1-t0)*1000:.1f}ms")
+				print(f"  Forward pass: {(t2-t1)*1000:.1f}ms")
+				print(f"  Loss calc: {(t3-t2)*1000:.1f}ms")
+				print(f"  Backward pass: {(t4-t3)*1000:.1f}ms")
+				print(f"  TensorBoard train: {(t5-t4)*1000:.1f}ms")
+				print(f"  Test eval: {(t6-t5)*1000:.1f}ms")
+				print(f"  TOTAL: {(t6-t0)*1000:.1f}ms")
 
 		torch.save(env_model.state_dict(), "model.pt")
 
