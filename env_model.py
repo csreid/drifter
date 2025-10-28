@@ -220,7 +220,7 @@ def main():
 	env_model = EnvModel(
 		action_space, observation_space, hidden_size=512, hidden_layers=2
 	).to(dev)
-	env_model.load_state_dict(torch.load("model.pt", weights_only=True))
+	#env_model.load_state_dict(torch.load("model.pt", weights_only=True))
 	opt = Adam(env_model.parameters())
 	df = pd.read_csv("transitions.csv")
 	train_df = df.sample(frac=0.8)
