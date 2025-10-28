@@ -28,6 +28,8 @@ from batched_memory import (
 )
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
+import time
+
 
 def collate_fn(batch):
 	actions = [b[0] for b in batch]
@@ -101,9 +103,9 @@ class EnvModel(Module):
 def loss_fn(inp: BatchedStateDelta, targets: BatchedStateDelta):
 	loss_components = {
 		"position": F.mse_loss(inp.position._tensor, targets.position._tensor),
-#		"goal_position": F.mse_loss(
-#			inp.local_goal_position._tensor, targets.local_goal_position._tensor
-#		),
+		# "goal_position": F.mse_loss(
+		# inp.local_goal_position._tensor, targets.local_goal_position._tensor
+		# ),
 		"absolute_goal_position": F.mse_loss(
 			inp.absolute_goal_position._tensor,
 			targets.absolute_goal_position._tensor,
@@ -120,7 +122,7 @@ def loss_fn(inp: BatchedStateDelta, targets: BatchedStateDelta):
 
 	loss_weights = {
 		"position": 1.0,
-		#"goal_position": 1.0,
+		# "goal_position": 1.0,
 		"absolute_goal_position": 1.0,
 		"velocity": 1.0,
 		# "is_flipped": 100.0,
@@ -212,6 +214,7 @@ class TransitionDataset(Dataset):
 def main():
 	use_gpu = torch.cuda.is_available()
 	dev = "cuda:0" if use_gpu else "cpu"
+	print(f"DEVICE: {dev}")
 
 	writer = SummaryWriter()
 	env_model = EnvModel(
@@ -227,11 +230,28 @@ def main():
 	test_ds = TransitionDataset(test_df)
 
 	train_dataloader = DataLoader(
-		train_ds, batch_size=1024, shuffle=True, collate_fn=collate_fn
+		train_ds,
+		batch_size=1024,
+		shuffle=True,
+		collate_fn=collate_fn,
+		pin_memory=True,
+		num_workers=4,
 	)
 	test_dataloader = DataLoader(
-		test_ds, batch_size=1024, shuffle=True, collate_fn=collate_fn
+		test_ds,
+		batch_size=1024,
+		shuffle=True,
+		collate_fn=collate_fn,
+		pin_memory=True,
+		num_workers=4,
 	)
+
+	dummy_inp = torch.randn(1024, 19).to(dev)
+	start = time.time()
+	for _ in range(100):
+		_ = env_model._batch_forward(dummy_inp)
+
+	print(f"Took {time.time() - start:.3f}s for 100 forward passes!")
 
 	for epoch in tqdm(range(50)):
 		for i, (action_X, state_X, batch_Y) in tqdm(
@@ -239,14 +259,11 @@ def main():
 			leave=False,
 			total=len(train_dataloader),
 		):
-
 			action_X = action_X.to(dev)
 			state_X = state_X.to(dev)
 			batch_Y = batch_Y.to(dev)
 
-			pred_X = BatchedStateDelta.from_tensor(
-				env_model(state_X, action_X)
-			)
+			pred_X = BatchedStateDelta.from_tensor(env_model(state_X, action_X))
 			loss, per_output_loss = loss_fn(pred_X, batch_Y)
 
 			opt.zero_grad()
@@ -262,6 +279,9 @@ def main():
 
 			with torch.no_grad():
 				action_test_X, obs_test_X, test_Y = next(iter(test_dataloader))
+				action_test_X = action_test_X.to(dev)
+				obs_test_X = obs_test_X.to(dev)
+				test_Y = test_Y.to(dev)
 
 				test_pred_X = BatchedStateDelta.from_tensor(
 					env_model(obs_test_X, action_test_X)

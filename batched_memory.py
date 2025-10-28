@@ -28,7 +28,7 @@ class BatchedVector3:
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedVector3":
 		assert tensor.shape[-1] == 3, f"Expected last dim=3, got {tensor.shape}"
-		return cls(_tensor=tensor.float())
+		return cls(_tensor=tensor)
 
 	@property
 	def x(self) -> torch.Tensor:
@@ -86,7 +86,7 @@ class BatchedQuaternion:
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedQuaternion":
 		assert tensor.shape[-1] == 4, f"Expected last dim=4, got {tensor.shape}"
-		return cls(_tensor=tensor.float())
+		return cls(_tensor=tensor)
 
 	@property
 	def x(self) -> torch.Tensor:
@@ -174,7 +174,7 @@ class BatchedState:
 		assert tensor.shape[-1] == 17, (
 			f"Expected last dim=17, got {tensor.shape}"
 		)
-		return cls(_tensor=tensor.float())
+		return cls(_tensor=tensor)
 
 	@classmethod
 	def from_list(cls, states: list[State]) -> "BatchedState":
@@ -279,7 +279,7 @@ class BatchedStateDelta:
 		assert tensor.shape[-1] == 17, (
 			f"Expected last dim=17, got {tensor.shape}"
 		)
-		return cls(_tensor=tensor.float())
+		return cls(_tensor=tensor)
 
 	@classmethod
 	def from_list(cls, states: list[StateDelta]) -> Self:
@@ -362,13 +362,13 @@ class BatchedAction:
 	@classmethod
 	def from_tensor(cls, tensor: torch.Tensor) -> "BatchedAction":
 		assert tensor.shape[-1] == 2, f"Expected last dim=2, got {tensor.shape}"
-		return cls(_tensor=tensor.float())
+		return cls(_tensor=tensor)
 
 	@classmethod
 	def from_list(cls, actions: list[Action]) -> "BatchedAction":
 		"""Create batched action from list of Action objects."""
 		tensor = torch.stack([a._tensor for a in actions])
-		return cls.from_tensor(tensor.float())
+		return cls.from_tensor(tensor)
 
 	@property
 	def steering_input(self) -> torch.Tensor:

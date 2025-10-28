@@ -17,7 +17,9 @@ action_space = spaces.Box(
 
 
 class DrifterEnv(gym.Env):
-	def __init__(self, action_duration=0.1, gui: bool = False, generate_terrain=False):
+	def __init__(
+		self, action_duration=0.1, gui: bool = False, generate_terrain=False
+	):
 		self.gui = gui
 
 		self.max_episode_steps = 1000
@@ -42,7 +44,9 @@ class DrifterEnv(gym.Env):
 
 		self.action_space = action_space
 
-		self.sim = RCCarSimulation(gui=self.gui, generated_terrain=generate_terrain)
+		self.sim = RCCarSimulation(
+			gui=self.gui, generated_terrain=generate_terrain
+		)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False
