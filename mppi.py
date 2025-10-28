@@ -24,6 +24,8 @@ from batched_memory import (
 	BatchedState,
 	BatchedStateDelta,
 )
+import time
+from collections import deque
 
 
 class MPPI:
@@ -51,7 +53,7 @@ class MPPI:
 
 		# --- MPPI stuff --- #
 
-		self._horizon = 20
+		self._horizon = 2
 		self._n_samples = 500
 		self._action_dim = self._action_space.shape[0]
 
@@ -91,14 +93,17 @@ class MPPI:
 		terminal_cost = distances[:, -1]
 
 		path_cost = distances.mean(dim=-1)
-		velocity_cost = torch.norm(states.velocity._tensor, dim=-1) / 100.0
+		velocity_cost = (torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)) / 100.0
 
 		action_cost = 0.01 * (actions._tensor**2).sum(dim=-1).sum(dim=-1)
 
-		return terminal_cost + path_cost  # + action_cost #+ velocity_cost
+		return path_cost + action_cost + velocity_cost #terminal_cost + path_cost  # + action_cost #+ velocity_cost
 
-	def _rollout_batch(self, initial_state, action_sequences):
+	def _rollout_batch(self, initial_state, action_sequences, horizon=None):
 		"""Rollout a batch of action sequences"""
+		if horizon is None:
+			horizon = self._horizon
+
 		batch_size = action_sequences.shape[0]
 		states = BatchedState.from_tensor(
 			initial_state.unsqueeze(0).repeat(batch_size, 1)
@@ -106,7 +111,7 @@ class MPPI:
 
 		trajectory_states = []
 
-		for t in range(self._horizon):
+		for t in range(horizon):
 			# Concatenate state and action for batch forward pass
 			batch_input = torch.cat(
 				[action_sequences[:, t], states._tensor], dim=-1
@@ -118,6 +123,13 @@ class MPPI:
 			trajectory_states.append(states._tensor)
 
 		return torch.stack(trajectory_states, dim=1)
+
+	def get_error_accumulation(self, rollout):
+		states = torch.stack([torch.tensor(r[0]) for r in rollout], dim=0)
+		actions = torch.stack([torch.tensor(r[1]) for r in rollout], dim=0)
+		next_states = BatchedState.from_tensor(torch.stack([torch.tensor(r[2]) for r in rollout], dim=0))
+		states_est = BatchedState.from_tensor(self._rollout_batch(states[0], actions.unsqueeze(0), horizon=10))
+
 
 	def get_action(self, observation: State):
 		"""Get action using MPPI
@@ -197,8 +209,8 @@ if __name__ == "__main__":
 	from drifter_env import DrifterEnv
 	from torch.utils.tensorboard import SummaryWriter
 
-	env = DrifterEnv(gui=True)
-	mppi_controller = MPPI(env, lambda_=1.0)
+	env = DrifterEnv(gui=True, generate_terrain=False)
+	mppi_controller = MPPI(env, lambda_=0.01)
 
 	test_a = torch.tensor(env.action_space.sample())
 	test_obs = torch.tensor(env.observation_space.sample())
@@ -224,9 +236,11 @@ if __name__ == "__main__":
 	s, _ = env.reset()
 	done = False
 	mppi_controller.reset_trajectory()
-	# env.set_realtime(True)
+	env.set_realtime(True)
 
-	for j in tqdm(range(1_000_000)):
+	recent_rollout = deque([], 10)
+
+	for j in range(1_000_000):#tqdm(range(1_000_000)):
 		a, costs = mppi_controller.get_action(s)
 
 		sp, r, done, trunc, _ = env.step(a)
@@ -236,19 +250,13 @@ if __name__ == "__main__":
 			next_state=State.from_tensor(torch.tensor(sp)),
 		)
 
+		recent_rollout.append((s, a, sp))
+		if j > 10:
+			pass
+			#mppi_controller.get_error_accumulation(recent_rollout)
+
 		memory.add(transition)
 
-		# if (i+j) > 10:
-		# actions, obs_s, targets = memory.sample(128)
-		# loss, loss_components = mppi_controller._fit_batch(
-		# actions,
-		# obs_s,
-		# targets
-		# )
-		# writer.add_scalar(f"Loss", loss, i)
-		# writer.add_scalars("loss_components", loss_components, i)
-
-		# writer.add_scalar(f"Loss", loss, i + j)
 		writer.add_scalar(
 			"Distance from goal", torch.norm(torch.tensor(s[:3])), i + j
 		)
@@ -256,7 +264,7 @@ if __name__ == "__main__":
 
 		s = sp
 
-		if done or trunc:
+		if done:
 			s, _ = env.reset()
 			mppi_controller.reset_trajectory()
 

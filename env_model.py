@@ -27,6 +27,7 @@ from batched_memory import (
 	BatchedStateDelta,
 )
 from torch.utils.tensorboard import SummaryWriter
+from collections import deque
 
 def collate_fn(batch):
 	actions = [b[0] for b in batch]
@@ -100,9 +101,9 @@ class EnvModel(Module):
 def loss_fn(inp: BatchedStateDelta, targets: BatchedStateDelta):
 	loss_components = {
 		"position": F.mse_loss(inp.position._tensor, targets.position._tensor),
-		"goal_position": F.mse_loss(
-			inp.local_goal_position._tensor, targets.local_goal_position._tensor
-		),
+#		"goal_position": F.mse_loss(
+#			inp.local_goal_position._tensor, targets.local_goal_position._tensor
+#		),
 		"absolute_goal_position": F.mse_loss(
 			inp.absolute_goal_position._tensor,
 			targets.absolute_goal_position._tensor,
@@ -119,7 +120,7 @@ def loss_fn(inp: BatchedStateDelta, targets: BatchedStateDelta):
 
 	loss_weights = {
 		"position": 1.0,
-		"goal_position": 1.0,
+		#"goal_position": 1.0,
 		"absolute_goal_position": 1.0,
 		"velocity": 1.0,
 		# "is_flipped": 100.0,

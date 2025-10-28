@@ -8,10 +8,33 @@ from memory import State, Action
 from batched_memory import BatchedState, BatchedAction, BatchedStateDelta
 import time
 from collections import deque
+import tempfile
+import xacro
 
 
 class ModelBasedSimulation:
 	"""Interactive simulation using the learned environment model"""
+
+	def _load_car(self):
+		"""Load the RC car URDF and get joint information"""
+		start_pos = [0, 0, 2.0]
+		start_orientation = p.getQuaternionFromEuler([0, 0, 0])
+
+		with tempfile.NamedTemporaryFile(mode="w", suffix=".urdf") as f:
+			urdf_str = xacro.process_file(
+				"robot.xacro",
+				mappings={"suspend": "true" },
+			).toxml()
+			f.write(urdf_str)
+			f.flush()
+
+			self.car_id = p.loadURDF(f.name, start_pos, start_orientation)
+
+		# Get joint information
+		num_joints = p.getNumJoints(self.car_id)
+		p.changeDynamics(
+			self.car_id, -1, linearDamping=0.005, angularDamping=0.005
+		)
 
 	def __init__(self, model_path="model.pt", gui=True):
 		# Load the trained model
@@ -35,9 +58,7 @@ class ModelBasedSimulation:
 		# Load car for visualization
 		start_pos = [0, 0, 0.5]
 		start_orientation = p.getQuaternionFromEuler([0, 0, 0])
-		self.car_id = p.loadURDF(
-			"racecar/racecar.urdf", start_pos, start_orientation
-		)
+		self._load_car()
 
 		# Load goal marker
 		self._spawn_goal([10, 10, 0])
@@ -251,6 +272,10 @@ class ModelBasedSimulation:
 		print("\nRunning model-based simulation...")
 
 		try:
+			for _ in range(10000):
+				p.stepSimulation()
+
+			input()
 			while True:
 				self.update_controls()
 				self.step()
