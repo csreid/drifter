@@ -42,7 +42,7 @@ class DrifterEnv(gym.Env):
 
 		self.action_space = action_space
 
-		self.sim = RCCarSimulation(gui=self.gui, generated_terrain=generate_terrain)
+		self.sim = RCCarSimulation()
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False
@@ -186,7 +186,6 @@ class DrifterEnv(gym.Env):
 
 	def step(self, action):
 		self.current_step += 1
-		self.sim.update_camera()
 		# self.sim.render_camera_image()
 
 		steering, throttle = action
@@ -203,6 +202,7 @@ class DrifterEnv(gym.Env):
 		if self._realtime:
 			self._realtime_sleep()
 
+		self.sim.render_camera_image()
 		return obs, reward, done, truncated, info
 
 	def set_realtime(self, val: bool):

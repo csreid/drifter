@@ -93,7 +93,7 @@ class MPPI:
 		terminal_cost = distances[:, -1]
 
 		path_cost = distances.mean(dim=-1)
-		velocity_cost = (torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)) / 100.0
+		velocity_cost = (torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)) / 50.
 
 		action_cost = 0.01 * (actions._tensor**2).sum(dim=-1).sum(dim=-1)
 

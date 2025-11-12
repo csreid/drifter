@@ -3,3 +3,4 @@ wheels
 logs
 runs
 transitions.csv
+model.pt

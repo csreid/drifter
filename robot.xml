@@ -1,0 +1,156 @@
+<mujoco model="car_robot">
+  <compiler angle="radian" autolimits="true"/>
+
+  <option timestep="0.004166" iterations="50" solver="Newton" tolerance="1e-10">
+    <flag contact="enable" energy="enable"/>
+  </option>
+
+  <asset>
+    <texture
+      name="grid"
+      type="2d"
+      builtin="checker"
+      width="512"
+      height="512"
+      rgb1=".1 .2 .3"
+      rgb2=".2 .3 .4"
+    />
+    <texture
+      name="skybox"
+      type="skybox"
+      builtin="gradient"
+      rgb1="0.3 0.5 0.9"
+      rgb2="0.1 0.3 0.7"
+      width="512"
+      height="512"
+    />
+    <material name="grid" texture="grid" texrepeat="50 50" reflectance=".0"/>
+    <material name="blue" rgba="0 0 0.8 1"/>
+    <material name="black" rgba="0.1 0.1 0.1 1"/>
+    <material name="green" rgba="0.1 0.6 0.1 1"/>
+    <material name="brown" rgba="0.4 0.2 0.1 1"/>
+    <material name="goal" rgba="0.9 0.0 0.3 0.8"/>
+  </asset>
+
+  <default>
+    <geom friction="1.0 0.005 0.0001" solref="0.01 1"/>
+    <joint damping="0.1" armature="0.01"/>
+    <default class="wheel">
+      <geom type="cylinder" size="0.07 0.01" friction="0.9 0.001 0.001"
+            material="black" mass="0.5"/>
+      <joint axis="0 1 0" damping="0.01"/>
+    </default>
+    <default class="suspension">
+      <joint
+        type="slide"
+        axis="0 0 1"
+        limited="true"
+        range="-0.03 0.03"
+        damping="12"
+        stiffness="600"
+      />
+    </default>
+    <default class="steering">
+      <joint type="hinge" axis="0 0 1" limited="true" range="-1.5 1.5"
+             damping="1.0"/>
+    </default>
+  </default>
+
+  <visual>
+    <headlight ambient="0.8 0.8 0.8" diffuse="0.8 0.8 0.8"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 0 50" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <light pos="20 20 30" dir="-1 -1 -1" diffuse="0.5 0.5 0.5"/>
+    <geom name="ground" type="plane" size="100 100 0.1" material="grid"/>
+
+    <!-- Goal marker -->
+    <body name="goal" pos="10 10 2.5">
+      <geom name="goal_geom" type="cylinder" size="1.0 2.5"
+            material="goal" contype="0" conaffinity="0"/>
+    </body>
+
+    <!-- Car chassis -->
+    <body name="base_link" pos="0 0 0.5">
+      <freejoint/>
+      <geom name="chassis" type="box" size="0.25 0.075 0.025"
+            material="blue" mass="8.0"/>
+      <camera name="front_camera_l" pos="0.3 -0.1 0.1" xyaxes="0 -1 0 0.1 0 1" fovy="60"/>
+      <camera name="front_camera_r" pos="0.3 0.1 0.1" xyaxes="0 -1 0 0.1 0 1" fovy="60"/>
+
+      <!-- Front Left Wheel Assembly -->
+      <body name="front_left_suspension" pos="0.2675 0.1405 -0.025">
+        <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+        <joint name="front_left_suspension" class="suspension"/>
+        <body name="front_left_steering" pos="0 0 0">
+          <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+          <joint name="front_left_steering_joint" class="steering"/>
+          <body name="front_left_wheel" pos="0 0 -0.045">
+            <joint name="front_left_wheel_joint" class="wheel"/>
+            <geom name="front_left_wheel_geom" class="wheel" euler="1.5708 0 0"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Front Right Wheel Assembly -->
+      <body name="front_right_suspension" pos="0.2675 -0.1405 -0.025">
+        <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+        <joint name="front_right_suspension" class="suspension"/>
+        <body name="front_right_steering" pos="0 0 0">
+          <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+          <joint name="front_right_steering_joint" class="steering"/>
+          <body name="front_right_wheel" pos="0 0 -0.045">
+            <joint name="front_right_wheel_joint" class="wheel"/>
+            <geom name="front_right_wheel_geom" class="wheel" euler="1.5708 0 0"/>
+          </body>
+        </body>
+      </body>
+
+      <!-- Rear Left Wheel Assembly -->
+      <body name="rear_left_suspension" pos="-0.2675 0.1405 -0.025">
+        <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+        <joint name="rear_left_suspension" class="suspension"/>
+        <body name="rear_left_wheel" pos="0 0 -0.045">
+          <joint name="rear_left_wheel_joint" class="wheel"/>
+          <geom name="rear_left_wheel_geom" class="wheel" euler="1.5708 0 0"/>
+        </body>
+      </body>
+
+      <!-- Rear Right Wheel Assembly -->
+      <body name="rear_right_suspension" pos="-0.2675 -0.1405 -0.025">
+        <inertial pos="0 0 0" mass="0.1" diaginertia="0.0001 0.0001 0.0001"/>
+        <joint name="rear_right_suspension" class="suspension"/>
+        <body name="rear_right_wheel" pos="0 0 -0.045">
+          <joint name="rear_right_wheel_joint" class="wheel"/>
+          <geom name="rear_right_wheel_geom" class="wheel" euler="1.5708 0 0"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Steering actuators (position control) -->
+    <position name="front_left_steering" joint="front_left_steering_joint"
+              kp="50" ctrlrange="-1.5 1.5"/>
+    <position name="front_right_steering" joint="front_right_steering_joint"
+              kp="50" ctrlrange="-1.5 1.5"/>
+
+    <!-- Drive actuators (torque control for rear wheels) -->
+    <motor name="rear_left_drive" joint="rear_left_wheel_joint"
+           gear="1" ctrlrange="-2 2"/>
+    <motor name="rear_right_drive" joint="rear_right_wheel_joint"
+           gear="1" ctrlrange="-2 2"/>
+  </actuator>
+
+  <sensor>
+    <framepos name="car_position" objtype="body" objname="base_link"/>
+    <framequat name="car_orientation" objtype="body" objname="base_link"/>
+    <framelinvel name="car_velocity" objtype="body" objname="base_link"/>
+    <frameangvel name="car_angvel" objtype="body" objname="base_link"/>
+    <jointpos name="fl_steering" joint="front_left_steering_joint"/>
+    <jointpos name="fr_steering" joint="front_right_steering_joint"/>
+    <jointvel name="rl_wheel_vel" joint="rear_left_wheel_joint"/>
+    <jointvel name="rr_wheel_vel" joint="rear_right_wheel_joint"/>
+  </sensor>
+</mujoco>
