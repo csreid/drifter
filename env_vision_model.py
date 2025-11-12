@@ -61,6 +61,7 @@ def _get_output_shape(model, input_shape):
 
 class EnvModel(Module):
 	def __init__(self):
+		super().__init__(self)
 		self._viz_pipeline = Sequential(
 			Conv2d(3, 16, kernel_size=4, stride=2),
 			MaxPool2d(kernel_size=4, stride=2),
