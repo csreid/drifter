@@ -202,7 +202,7 @@ class DrifterEnv(gym.Env):
 		if self._realtime:
 			self._realtime_sleep()
 
-		self.sim.render_camera_image()
+		#self.sim.render_camera_image()
 		return obs, reward, done, truncated, info
 
 	def set_realtime(self, val: bool):

@@ -333,7 +333,7 @@ if __name__ == "__main__":
 
 			# Step simulation and get state
 			state = sim.step_simulation()
-			sim.render_camera_image()
+			#sim.render_camera_image()
 
 			# Render and collect frames
 			frame = sim.render()
