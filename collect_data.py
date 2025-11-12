@@ -224,7 +224,7 @@ def main():
 
 	s, _ = env.reset()
 	batch = []
-	episode = uuid4()
+	episode = str(uuid4())
 
 	for i in tqdm(range(10_000)):
 		a = expl_policy.get_action(s)
