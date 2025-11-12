@@ -4,3 +4,4 @@ logs
 runs
 transitions.csv
 model.pt
+*.db
