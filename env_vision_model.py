@@ -76,7 +76,6 @@ class EnvModel(Module):
 			LeakyReLU(),
 
 			Conv2d(128, 512, kernel_size=3),
-			MaxPool2d(kernel_size=3),
 			LeakyReLU(),
 		)
 
