@@ -12,7 +12,6 @@ from torch.nn import (
 	SiLU,
 	Conv2d,
 	MaxPool2d,
-	Flatten
 )
 from torch.optim import Adam, SGD
 from torch.nn import functional as F
@@ -79,8 +78,6 @@ class EnvModel(Module):
 
 			Conv2d(128, 512, kernel_size=3),
 			LeakyReLU(),
-
-			Flatten()
 		)
 
 		out_shape = product(_get_output_shape(self._viz_pipeline, (3,  160, 240)))
@@ -90,6 +87,7 @@ class EnvModel(Module):
 
 	def forward(self, X):
 		out = self._viz_pipeline(X)
+		out = torch.flatten(out)
 		out = self.h1(out)
 		out = F.leaky_relu(out)
 		out = self.out(out)
