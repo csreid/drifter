@@ -42,10 +42,11 @@ class DrifterEnv(gym.Env):
 
 		self.action_space = action_space
 
-		self.sim = RCCarSimulation()
+		self.sim = RCCarSimulation()#gui=self.gui, generated_terrain=generate_terrain)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False
+
 
 	def _realtime_sleep(self):
 		cur_timestamp = time.time()
@@ -71,7 +72,6 @@ class DrifterEnv(gym.Env):
 		vel = np.array(simstate["velocity_local"])
 		is_flipped = np.array([simstate["is_flipped"]]).astype("float")
 
-		# oned_obs = [pos, local_goal_pos, vel, is_flipped, goal_pos, orn,]
 		oned_obs = [
 			pos,
 			local_goal_pos,
@@ -80,15 +80,12 @@ class DrifterEnv(gym.Env):
 			goal_pos,
 			orn,
 		]
-		# oned_obs = [pos, orn, vel]
+
 		obs = np.concatenate(oned_obs)
 
-		# camera = self.sim.capture_front_camera(
-		# image_width=320, image_height=240
-		# )
+		camera = simstate['camera_img']
 
-		# return {"state": obs, "camera": camera}
-		return obs
+		return {"state": obs, "camera": camera}
 
 	def _current_distance(self):
 		simstate = self.sim.get_state()
@@ -186,7 +183,7 @@ class DrifterEnv(gym.Env):
 
 	def step(self, action):
 		self.current_step += 1
-		# self.sim.render_camera_image()
+		#self.sim.render_camera_image()
 
 		steering, throttle = action
 		self.sim.set_controls(steering, throttle)
@@ -224,7 +221,6 @@ if __name__ == "__main__":
 
 	# Test random policy
 	obs, info = env.reset()
-	print(f"Observation shape: {obs.shape}")
 	print(f"Action space: {env.action_space}")
 
 	for step in range(100000):
