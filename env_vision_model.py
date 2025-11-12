@@ -33,7 +33,7 @@ from batched_memory import (
 from torch.utils.tensorboard import SummaryWriter
 from collections import deque
 from itertools import product
-
+from functools import reduce
 
 def _get_output_shape(model, input_shape):
 	"""
@@ -83,7 +83,11 @@ class EnvModel(Module):
 			Flatten()
 		)
 
-		out_shape = product(_get_output_shape(self._viz_pipeline, (3,  160, 240)))
+		out_shape = reduce(
+			lambda acc, val: acc * val
+			_get_output_shape(self._viz_pipeline, (3,  160, 240))
+		)
+
 		self.h1 = Linear(out_shape, 512)
 
 		self.out = Linear(512, 16)
