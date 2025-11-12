@@ -256,7 +256,7 @@ def main():
 				batch = []
 
 			s, _ = env.reset()
-			episode = uuid4()
+			episode = str(uuid4())
 
 	# Write any remaining transitions
 	if batch:
