@@ -84,7 +84,7 @@ class EnvModel(Module):
 		)
 
 		out_shape = reduce(
-			lambda acc, val: acc * val
+			lambda acc, val: acc * val,
 			_get_output_shape(self._viz_pipeline, (3,  160, 240))
 		)
 
