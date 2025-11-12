@@ -97,3 +97,5 @@ class EnvModel(Module):
 		out = self.h1(out)
 		out = F.leaky_relu(out)
 		out = self.velocity_head(out)
+
+		return out
