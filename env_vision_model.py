@@ -91,11 +91,26 @@ class EnvModel(Module):
 		self.h1 = Linear(out_shape, 512)
 
 		self.velocity_head = Linear(512, 3)
+		self.position_head = Linear(512, 3)
+		self.orientation_head = Linear(512, 4)
+		self.goal_position_head = Linear(512, 3)
+		self.local_goal_position_head = Linear(512, 3)
 
 	def forward(self, X):
 		out = self._viz_pipeline(X)
 		out = self.h1(out)
 		out = F.leaky_relu(out)
-		out = self.velocity_head(out)
 
-		return out
+		velocity_out = self.velocity_head(out)
+		position_out = self.position_head(out)
+		orientation_out = self.orientation_head(out)
+		goal_position_out = self.goal_position_head(out)
+		local_goal_position_out = self.local_goal_position_head(out)
+
+		return {
+			'position': position_out,
+			'velocity': velocity_out,
+			'orientation': orientation_out,
+			'goal': goal_position_out,
+			'local_goal': local_goal_position_out
+		}
