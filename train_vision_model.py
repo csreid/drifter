@@ -21,7 +21,7 @@ for images, states in dataloader:
 	#   - 'local_goal': (B, 3)
 	#   - 'goal': (B, 3)
 	predictions = model(images)
-	loss = criterion(predictions, states)
+	loss = criterion(predictions, states['velocity'])
 
 	opt.zero_grad()
 	loss.backward()

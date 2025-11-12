@@ -90,10 +90,10 @@ class EnvModel(Module):
 
 		self.h1 = Linear(out_shape, 512)
 
-		self.out = Linear(512, 16)
+		self.velocity_head = Linear(512, 3)
 
 	def forward(self, X):
 		out = self._viz_pipeline(X)
 		out = self.h1(out)
 		out = F.leaky_relu(out)
-		out = self.out(out)
+		out = self.velocity_head(out)
