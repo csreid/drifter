@@ -1,3 +1,4 @@
+from tqdm import tqdm
 from env_vision_model import EnvModel
 from drifter_dataloader import create_dataloader
 from torch.nn import MSELoss
@@ -8,11 +9,13 @@ dataloader = create_dataloader(
 	db_path="drifter_data.db", batch_size=32, shuffle=True, num_workers=4
 )
 
-model = EnvModel()
+dev = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+model = EnvModel().to(dev)
 criterion = MSELoss()
 opt = Adam(model.parameters())
 # Use in training loop
-for images, states in dataloader:
+for images, states in tqdm(dataloader):
 	# images: (B, C, H, W) - camera images
 	# states: dict with keys:
 	#   - 'position': (B, 3)
@@ -20,8 +23,8 @@ for images, states in dataloader:
 	#   - 'velocity': (B, 3)
 	#   - 'local_goal': (B, 3)
 	#   - 'goal': (B, 3)
-	predictions = model(images)
-	loss = criterion(predictions, states['velocity'])
+	predictions = model(imagesk.to(dev))
+	loss = criterion(predictions, states['velocity'].to(dev))
 
 	opt.zero_grad()
 	loss.backward()
