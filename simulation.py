@@ -44,7 +44,7 @@ class RCCarSimulation:
 		self._prev_velocities = deque([np.array([0, 0, 0])], maxlen=10)
 		self.flipped_frames = 0
 
-		self._camera_renderer = mujoco.Renderer(self.model, 160, 240)
+		self._camera_renderer = mujoco.Renderer(self.model, 480, 480)
 
 	def _get_ids(self):
 		"""Get IDs for actuators, sensors, bodies, and geoms"""

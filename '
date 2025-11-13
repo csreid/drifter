@@ -58,7 +58,6 @@
 
   <visual>
     <headlight ambient="0.8 0.8 0.8" diffuse="0.8 0.8 0.8"/>
-    <map znear="0.001" zfar="10" />
   </visual>
 
   <worldbody>
@@ -81,9 +80,9 @@
     <body name="base_link" pos="0 0 0.5">
       <freejoint/>
       <geom name="chassis" type="box" size="0.25 0.075 0.025"
-            material="black" mass="8.0"/>
-			<camera name="front_camera_l" pos="0.1 0 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="45" />
-      <camera name="front_camera_r" pos="0.1 0 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="45"/>
+            material="blue" mass="8.0"/>
+      <camera name="front_camera_l" pos="0.3 -0.1 0.3" xyaxes="0 -1 0 0.1 0 1" fovy="60"/>
+      <camera name="front_camera_r" pos="0.3 0.1 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="60"/>
 
       <!-- Front Left Wheel Assembly -->
       <body name="front_left_suspension" pos="0.2675 0.1405 -0.025">
