@@ -24,6 +24,7 @@ writer = SummaryWriter()
 for epoch in range(10):
 	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
 		predictions = model(images.to(dev), seq_lens)
+		predictions = {'position': predictions['position']}
 
 		loss = 0.0
 		per_output_loss = {}
