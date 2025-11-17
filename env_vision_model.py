@@ -98,7 +98,7 @@ class EnvModel(Module):
 		self.local_goal_position_head = Linear(512, 3)
 
 	def forward(self, X, seqlens):
-		seqlen, batchsize, C, H, W = X.shape[0], X.shape[1]
+		seqlen, batchsize, C, H, W = X.shape
 
 		out = X.view(seqlen * batchsize, C, H, W)
 		out = self._viz_pipeline(out)
