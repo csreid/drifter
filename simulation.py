@@ -203,8 +203,8 @@ class RCCarSimulation:
 		).as_matrix()
 
 		# Get velocities (in world frame from sensor)
-		world_vel = self.data.sensordata[0:3].copy()
-		world_angvel = self.data.sensordata[6:9].copy()
+		world_vel = self.data.sensordata[7:10].copy()
+		world_angvel = self.data.sensordata[10:13].copy()
 
 		# Transform to local frame
 		local_vel = R.T @ world_vel
