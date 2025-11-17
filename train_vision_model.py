@@ -17,7 +17,7 @@ criterion = MSELoss()
 opt = Adam(model.parameters())
 
 # Use in training loop
-for images, states in tqdm(dataloader):
+for images, states, seq_lens in tqdm(dataloader):
 	# images: (B, C, H, W) - camera images
 	# states: dict with keys:
 	#   - 'position': (B, 3)

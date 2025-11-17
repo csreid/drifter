@@ -17,6 +17,7 @@ from torch.nn import (
 )
 from torch.optim import Adam, SGD
 from torch.nn import functional as F
+from torch.nn.utils.rnn import pack_padded_sequence
 import numpy as np
 from exploration_policy import ExplorationPolicy
 from tabulate import tabulate
@@ -99,17 +100,26 @@ class EnvModel(Module):
 		self.goal_position_head = Linear(512, 3)
 		self.local_goal_position_head = Linear(512, 3)
 
-	def forward(self, X):
-		out = self._viz_pipeline(X)
+	def forward(self, X, seqlens):
+		seqlen, batchsize, C, H, W = X.shape[0], X.shape[1]
+
+		out = X.view(seqlen * batchsize, C, H, W)
+		out = self._viz_pipeline(out)
 		out = self.h1(out)
 		out = F.leaky_relu(out)
-		_, h = self._rnn(out)
 
-		velocity_out = self.velocity_head(h)
-		position_out = self.position_head(h)
-		orientation_out = self.orientation_head(h)
-		goal_position_out = self.goal_position_head(h)
-		local_goal_position_out = self.local_goal_position_head(h)
+		embed_dim = out.shape[-1]
+		out = out.view(seqlen, batchsize, embed_dim)
+
+		out = pack_padded_sequence(out, seqlens)
+		_, out = self._rnn(out)
+		out = pad_packed_sequence(out, batch_first=False)
+
+		velocity_out = self.velocity_head(out)
+		position_out = self.position_head(out)
+		orientation_out = self.orientation_head(out)
+		goal_position_out = self.goal_position_head(out)
+		local_goal_position_out = self.local_goal_position_head(out)
 
 		return {
 			'position': position_out,
