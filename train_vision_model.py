@@ -25,7 +25,7 @@ for images, states, seq_lens in tqdm(dataloader):
 	#   - 'velocity': (B, 3)
 	#   - 'local_goal': (B, 3)
 	#   - 'goal': (B, 3)
-	predictions = model(images.to(dev))
+	predictions = model(images.to(dev), seq_lens)
 
 	loss = 0.
 	for key, value in predictions.items():
