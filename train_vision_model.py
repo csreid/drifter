@@ -17,7 +17,7 @@ dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 model = EnvModel().to(dev)
 criterion = MSELoss()
-opt = Adam(model.parameters(), lr=1.)
+opt = Adam(model.parameters())
 
 writer = SummaryWriter()
 # Use in training loop
