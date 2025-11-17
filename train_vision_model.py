@@ -6,6 +6,7 @@ from drifter_dataloader_sequential import (
 )
 from torch.nn import MSELoss
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 
 # Create the dataloader
 dataloader = create_dataloader(
@@ -18,23 +19,35 @@ model = EnvModel().to(dev)
 criterion = MSELoss()
 opt = Adam(model.parameters())
 
+writer = SummaryWriter()
 # Use in training loop
-for images, states, seq_lens in tqdm(dataloader):
-	# images: (B, C, H, W) - camera images
-	# states: dict with keys:
-	#   - 'position': (B, 3)
-	#   - 'orientation': (B, 4) - quaternion
-	#   - 'velocity': (B, 3)
-	#   - 'local_goal': (B, 3)
-	#   - 'goal': (B, 3)
-	predictions = model(images.to(dev), seq_lens)
+for epoch in range(10):
+	for images, states, seq_lens in tqdm(dataloader):
+		# images: (B, C, H, W) - camera images
+		# states: dict with keys:
+		#   - 'position': (B, 3)
+		#   - 'orientation': (B, 4) - quaternion
+		#   - 'velocity': (B, 3)
+		#   - 'local_goal': (B, 3)
+		#   - 'goal': (B, 3)
+		predictions = model(images.to(dev), seq_lens)
 
-	loss = 0.0
-	for key, value in predictions.items():
-		loss += criterion(value, states[key].to(dev))
+		loss = 0.0
+		per_output_loss = {}
+		for key, value in predictions.items():
+			this_loss = criterion(value, states[key].to(dev))
 
-	# loss = criterion(predictions, states['velocity'].to(dev))
+			per_output_loss[key] = this_loss
+			loss += this_loss
 
-	opt.zero_grad()
-	loss.backward()
-	opt.step()
+		# loss = criterion(predictions, states['velocity'].to(dev))
+		writer.add_scalars(
+			"loss_components",
+			per_output_loss,
+			epoch * len(train_dataloader) + i,
+		)
+		writer.add_scalar("Loss", loss, epoch * len(dataloader) + i)
+
+		opt.zero_grad()
+		loss.backward()
+		opt.step()
