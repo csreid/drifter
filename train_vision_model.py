@@ -17,19 +17,12 @@ dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 model = EnvModel().to(dev)
 criterion = MSELoss()
-opt = Adam(model.parameters())
+opt = Adam(model.parameters(), lr=1.)
 
 writer = SummaryWriter()
 # Use in training loop
 for epoch in range(10):
 	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
-		# images: (B, C, H, W) - camera images
-		# states: dict with keys:
-		#   - 'position': (B, 3)
-		#   - 'orientation': (B, 4) - quaternion
-		#   - 'velocity': (B, 3)
-		#   - 'local_goal': (B, 3)
-		#   - 'goal': (B, 3)
 		predictions = model(images.to(dev), seq_lens)
 
 		loss = 0.0
