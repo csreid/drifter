@@ -65,7 +65,7 @@ class EnvModel(Module):
 
 		self._h1 = Linear(viz_out_shape, 512)
 
-		self._rnn = LSTM(512, 512)
+		self._rnn = LSTM(512, 512, batch_first=True)
 
 		self.velocity_head = Linear(512, 3)
 		self.position_head = Linear(512, 3)
