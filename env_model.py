@@ -1,33 +1,23 @@
 import torch
 from tqdm import tqdm
-from collections import deque
 from torch.nn import (
 	Linear,
 	Module,
 	Sequential,
-	LeakyReLU,
-	MSELoss,
-	Sigmoid,
 	SiLU,
 )
-from torch.optim import Adam, SGD
+from torch.optim import Adam
 from torch.nn import functional as F
-import numpy as np
-from exploration_policy import ExplorationPolicy
-from tabulate import tabulate
-from IPython import embed
 from drifter_env import observation_space, action_space
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
-from memory import Transition, State, Action
+from memory import State, Action
 from batched_memory import (
 	BatchedState,
-	BatchedTransition,
 	BatchedAction,
 	BatchedStateDelta,
 )
 from torch.utils.tensorboard import SummaryWriter
-from collections import deque
 
 
 def collate_fn(batch):
@@ -256,7 +246,7 @@ def main():
 				per_output_loss,
 				epoch * len(train_dataloader) + i,
 			)
-			writer.add_scalar(f"Loss", loss, epoch * len(train_dataloader) + i)
+			writer.add_scalar("Loss", loss, epoch * len(train_dataloader) + i)
 
 			with torch.no_grad():
 				action_test_X, obs_test_X, test_Y = next(iter(test_dataloader))
@@ -271,133 +261,6 @@ def main():
 				)
 
 		torch.save(env_model.state_dict(), "model.pt")
-
-
-class EnvModelWithSAC(Module):
-	def __init__(
-		self, action_space, observation_space, hidden_size=64, hidden_layers=4
-	):
-		super().__init__()
-
-		# Shared input and hidden layers (original EnvModel structure)
-		obs_dim = observation_space.shape[0]
-		action_dim = action_space.shape[0]
-		input_len = action_dim + obs_dim
-
-		self._input = Linear(input_len, hidden_size)
-
-		hidden_layers_list = [
-			[Linear(hidden_size, hidden_size), SiLU()]
-			for _ in range(hidden_layers)
-		]
-		self._hidden = Sequential(
-			*[layer for tier in hidden_layers_list for layer in tier]
-		)
-
-		# Original env model head (dynamics prediction)
-		self._output = Linear(hidden_size, obs_dim)
-
-		# Actor head (policy network)
-		# Takes only observation, outputs action distribution parameters
-		self.actor_input = Linear(obs_dim, hidden_size)
-		self.actor_mean = Linear(hidden_size, action_dim)
-		self.actor_log_std = Linear(hidden_size, action_dim)
-
-		# Critic heads (two Q-networks)
-		# Takes observation + action, outputs Q-value
-		self.critic1_output = Linear(hidden_size, 1)
-		self.critic2_output = Linear(hidden_size, 1)
-
-		self._initialize_weights()
-
-	def _initialize_weights(self):
-		"""Initialize network weights"""
-		for m in self.modules():
-			if isinstance(m, Linear):
-				nn.init.normal_(m.weight, mean=0.0, std=0.01)
-				if m.bias is not None:
-					nn.init.constant_(m.bias, 0)
-
-	def forward(self, *args):
-		"""Original forward pass for env model (dynamics prediction)"""
-		if len(args) == 1:
-			return self._batch_forward(*args)
-		elif len(args) == 2:
-			return self._one_forward(*args)
-
-	def _batch_forward(self, X):
-		"""Original batch forward for dynamics model"""
-		out = self._input(X.float())
-		out = self._hidden(out)
-		out = self._output(out)
-		return out
-
-	def _one_forward(self, observation, action):
-		"""Original one forward for dynamics model"""
-		inp = torch.cat([action._tensor, observation._tensor], dim=-1)
-		return self._batch_forward(inp)
-
-	def _get_shared_features(self, obs, action):
-		"""
-		Get shared features from the hidden layers.
-		"""
-		inp = torch.cat([action, obs], dim=-1)
-		features = self._input(inp.float())
-		features = self._hidden(features)
-		return features
-
-	def forward_actor(self, obs):
-		"""
-		Forward pass through actor network.
-		Actor only needs observation, not action.
-		"""
-		# Actor has its own input layer since it only takes observation
-		features = self.actor_input(obs.float())
-		features = self._hidden(features)  # Reuse shared hidden layers
-
-		mean = self.actor_mean(features)
-		log_std = self.actor_log_std(features)
-		log_std = torch.clamp(log_std, -20, 2)
-		return mean, log_std
-
-	def forward_critic(self, obs, action):
-		"""
-		Forward pass through both critic networks.
-		Critics take observation + action and use shared features.
-		"""
-		features = self._get_shared_features(obs, action)
-		q1 = self.critic1_output(features)
-		q2 = self.critic2_output(features)
-		return q1, q2
-
-	def sample_action(self, obs, deterministic=False):
-		"""
-		Sample an action from the policy.
-		Uses reparameterization trick for backpropagation.
-		"""
-		mean, log_std = self.forward_actor(obs)
-
-		if deterministic:
-			return torch.tanh(mean), None
-
-		std = log_std.exp()
-		normal = Normal(mean, std)
-
-		# Reparameterization trick
-		x_t = normal.rsample()
-		action = torch.tanh(x_t)
-
-		# Calculate log probability with tanh correction
-		log_prob = normal.log_prob(x_t)
-		log_prob -= torch.log(1 - action.pow(2) + 1e-6)
-		log_prob = log_prob.sum(-1, keepdim=True)
-
-		return action, log_prob
-
-	def predict_next_state(self, obs, action):
-		"""Predict state delta using the dynamics model"""
-		return self._one_forward(obs, action)
-
 
 if __name__ == "__main__":
 	main()

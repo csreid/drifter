@@ -2,7 +2,7 @@ import numpy as np
 import random
 from enum import Enum
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Set
+from typing import List, Tuple
 import pybullet as p
 from noise import pnoise2
 

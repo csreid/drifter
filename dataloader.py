@@ -196,7 +196,7 @@ if __name__ == "__main__":
 
 	# Get a single batch
 	for images, states in dataloader:
-		print(f"\nBatch shapes:")
+		print("\nBatch shapes:")
 		print(f"  Images: {images.shape}")
 		print(f"  Position: {states['position'].shape}")
 		print(f"  Orientation: {states['orientation'].shape}")
@@ -204,7 +204,7 @@ if __name__ == "__main__":
 		print(f"  Local goal: {states['local_goal'].shape}")
 		print(f"  Goal: {states['goal'].shape}")
 
-		print(f"\nSample values from first item in batch:")
+		print("\nSample values from first item in batch:")
 		print(f"  Image range: [{images[0].min():.3f}, {images[0].max():.3f}]")
 		print(f"  Position: {states['position'][0]}")
 		print(f"  Orientation: {states['orientation'][0]}")

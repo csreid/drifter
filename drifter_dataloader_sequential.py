@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict
 import random
 
 
@@ -336,7 +336,7 @@ if __name__ == "__main__":
 
 	# Get a single batch
 	for images, states, seq_lengths in dataloader:
-		print(f"\nBatch shapes:")
+		print("\nBatch shapes:")
 		print(f"  Images: {images.shape}")  # [batch, max_seq_len, C, H, W]
 		print(
 			f"  Position: {states['position'].shape}"
@@ -347,7 +347,7 @@ if __name__ == "__main__":
 		print(f"  Goal: {states['goal'].shape}")
 		print(f"  Sequence lengths: {seq_lengths}")
 
-		print(f"\nActual vs padded:")
+		print("\nActual vs padded:")
 		for i in range(min(3, len(seq_lengths))):
 			print(
 				f"  Sample {i}: actual_len={seq_lengths[i]}, padded_len={images.shape[1]}"

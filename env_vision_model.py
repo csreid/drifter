@@ -1,40 +1,16 @@
 import torch
-from tqdm import tqdm
-from collections import deque
 from torch.nn import (
-	Sequential,
 	Linear,
 	Module,
 	Sequential,
 	LeakyReLU,
-	MSELoss,
-	Sigmoid,
-	SiLU,
 	Conv2d,
 	MaxPool2d,
 	Flatten,
 	LSTM,
 )
-from torch.optim import Adam, SGD
 from torch.nn import functional as F
-from torch.nn.utils.rnn import pack_padded_sequence
-import numpy as np
-from exploration_policy import ExplorationPolicy
-from tabulate import tabulate
-from IPython import embed
-from drifter_env import observation_space, action_space
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
-from memory import Transition, State, Action
-from batched_memory import (
-	BatchedState,
-	BatchedTransition,
-	BatchedAction,
-	BatchedStateDelta,
-)
-from torch.utils.tensorboard import SummaryWriter
-from collections import deque
-from itertools import product
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from functools import reduce
 
 
@@ -102,7 +78,7 @@ class EnvModel(Module):
 
 		out = X.view(seqlen * batchsize, C, H, W)
 		out = self._viz_pipeline(out)
-		out = self.h1(out)
+		out = self._h1(out)
 		out = F.leaky_relu(out)
 
 		embed_dim = out.shape[-1]

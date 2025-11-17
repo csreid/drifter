@@ -1,14 +1,13 @@
 import torch
 import numpy as np
 from dataclasses import dataclass
-from typing import Union, Self, TypeGuard, TYPE_CHECKING
+from typing import Self, TYPE_CHECKING
 import random
 
 if TYPE_CHECKING:
 	from batched_memory import (
 		BatchedAction,
 		BatchedState,
-		BatchedTransition,
 		BatchedStateDelta,
 	)
 
@@ -316,8 +315,6 @@ class MPPIMemory:
 		from batched_memory import (
 			BatchedAction,
 			BatchedState,
-			BatchedTransition,
-			BatchedStateDelta,
 		)
 
 		"""

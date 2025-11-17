@@ -1,4 +1,3 @@
-from io import StringIO
 import pybullet as p
 import pybullet_data
 import time
@@ -6,9 +5,7 @@ import numpy as np
 import xacro
 import tempfile
 from terrain import generate_terrain
-from trackgen import RacetrackGenerator
 import pygame
-import os
 from display import DataDisplay
 from collections import deque
 

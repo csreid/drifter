@@ -1,6 +1,5 @@
 import tkinter as tk
 import math
-import threading
 import time
 import pybullet as p
 

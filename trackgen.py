@@ -619,7 +619,7 @@ def demo_racetrack():
 		)
 
 		if track_info:
-			print(f"Track created successfully!")
+			print("Track created successfully!")
 			print(f"Track body ID: {track_info['track_body']}")
 			print(
 				f"Number of barrier bodies: {len(track_info['barrier_bodies'])}"

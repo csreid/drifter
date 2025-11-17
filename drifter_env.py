@@ -3,7 +3,6 @@ import numpy as np
 from simulation import RCCarSimulation
 from gymnasium import spaces
 import gymnasium as gym
-import time
 
 observation_space = gym.spaces.Box(
 	low=-np.inf, high=np.inf, shape=(17,), dtype=np.float32
@@ -60,7 +59,7 @@ class DrifterEnv(gym.Env):
 		if time_to_sleep > 0:
 			time.sleep(time_to_sleep)
 		else:
-			print(f"WARNING: running slower than real time")
+			print("WARNING: running slower than real time")
 
 		self.prev_timestamp = time.time()
 

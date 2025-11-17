@@ -1,31 +1,15 @@
 import torch
-from tqdm import tqdm
 from collections import deque
-from torch.nn import (
-	Linear,
-	Module,
-	Sequential,
-	LeakyReLU,
-	MSELoss,
-	Sigmoid,
-	SiLU,
-)
-from torch.optim import Adam, SGD
-from torch.nn import functional as F
+from torch.optim import Adam
 import numpy as np
 from exploration_policy import ExplorationPolicy
-from tabulate import tabulate
-from IPython import embed
 from env_model import EnvModel, loss_fn
-from memory import MPPIMemory, Transition, Action, State, StateDelta
+from memory import MPPIMemory, Transition, Action, State
 from batched_memory import (
-	BatchedTransition,
 	BatchedAction,
 	BatchedState,
 	BatchedStateDelta,
 )
-import time
-from collections import deque
 
 
 class MPPI:

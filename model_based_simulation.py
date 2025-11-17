@@ -5,9 +5,8 @@ import pybullet_data
 from env_model import EnvModel
 from drifter_env import observation_space, action_space
 from memory import State, Action
-from batched_memory import BatchedState, BatchedAction, BatchedStateDelta
+from batched_memory import BatchedStateDelta
 import time
-from collections import deque
 import tempfile
 import xacro
 

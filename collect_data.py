@@ -1,18 +1,9 @@
 from tqdm import tqdm
-import torch
 import gzip
 import sqlite3
 import numpy as np
 from drifter_env import DrifterEnv
-from torch.utils.tensorboard import SummaryWriter
 from exploration_policy import ExplorationPolicy
-from memory import MPPIMemory, Transition, Action, State, StateDelta
-from batched_memory import (
-	BatchedTransition,
-	BatchedAction,
-	BatchedState,
-	BatchedStateDelta,
-)
 from uuid import uuid4
 
 
