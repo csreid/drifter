@@ -84,7 +84,7 @@ class EnvModel(Module):
 		embed_dim = out.shape[-1]
 		out = out.view(batchsize, seqlen, embed_dim)
 
-		out = pack_padded_sequence(out, seqlens)
+		out = pack_padded_sequence(out, seqlens, batch_first=True)
 		out, _= self._rnn(out)
 		out = pad_packed_sequence(out, batch_first=True)
 
