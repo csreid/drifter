@@ -74,7 +74,7 @@ class EnvModel(Module):
 		self.local_goal_position_head = Linear(512, 3)
 
 	def forward(self, X, seqlens):
-		seqlen, batchsize, C, H, W = X.shape
+		batchsize, seqlen, C, H, W = X.shape
 
 		out = X.view(seqlen * batchsize, C, H, W)
 		out = self._viz_pipeline(out)
@@ -82,11 +82,11 @@ class EnvModel(Module):
 		out = F.leaky_relu(out)
 
 		embed_dim = out.shape[-1]
-		out = out.view(seqlen, batchsize, embed_dim)
+		out = out.view(batchsize, seqlen, embed_dim)
 
 		out = pack_padded_sequence(out, seqlens)
-		_, out = self._rnn(out)
-		out = pad_packed_sequence(out, batch_first=False)
+		out, _= self._rnn(out)
+		out = pad_packed_sequence(out, batch_first=True)
 
 		velocity_out = self.velocity_head(out)
 		position_out = self.position_head(out)
