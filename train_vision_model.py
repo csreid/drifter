@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import torch
 from env_vision_model import EnvModel
-from drifter_dataloader import create_dataloader
+from drifter_dataloader_sequential import create_sequence_dataloader as create_dataloader
 from torch.nn import MSELoss
 from torch.optim import Adam
 

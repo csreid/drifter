@@ -12,7 +12,8 @@ from torch.nn import (
 	SiLU,
 	Conv2d,
 	MaxPool2d,
-	Flatten
+	Flatten,
+	LSTM
 )
 from torch.optim import Adam, SGD
 from torch.nn import functional as F
@@ -83,12 +84,14 @@ class EnvModel(Module):
 			Flatten()
 		)
 
-		out_shape = reduce(
+		viz_out_shape = reduce(
 			lambda acc, val: acc * val,
 			_get_output_shape(self._viz_pipeline, (3,  160, 240))
 		)
 
-		self.h1 = Linear(out_shape, 512)
+		self._h1 = Linear(viz_out_shape, 512)
+
+		self._rnn = LSTM(512, 512)
 
 		self.velocity_head = Linear(512, 3)
 		self.position_head = Linear(512, 3)
@@ -100,12 +103,13 @@ class EnvModel(Module):
 		out = self._viz_pipeline(X)
 		out = self.h1(out)
 		out = F.leaky_relu(out)
+		_, h = self._rnn(out)
 
-		velocity_out = self.velocity_head(out)
-		position_out = self.position_head(out)
-		orientation_out = self.orientation_head(out)
-		goal_position_out = self.goal_position_head(out)
-		local_goal_position_out = self.local_goal_position_head(out)
+		velocity_out = self.velocity_head(h)
+		position_out = self.position_head(h)
+		orientation_out = self.orientation_head(h)
+		goal_position_out = self.goal_position_head(h)
+		local_goal_position_out = self.local_goal_position_head(h)
 
 		return {
 			'position': position_out,
