@@ -22,7 +22,7 @@ opt = Adam(model.parameters())
 writer = SummaryWriter()
 # Use in training loop
 for epoch in range(10):
-	for images, states, seq_lens in tqdm(dataloader):
+	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
 		# images: (B, C, H, W) - camera images
 		# states: dict with keys:
 		#   - 'position': (B, 3)
@@ -44,9 +44,9 @@ for epoch in range(10):
 		writer.add_scalars(
 			"loss_components",
 			per_output_loss,
-			epoch * len(train_dataloader) + i,
+			epoch * len(dataloader) + idx,
 		)
-		writer.add_scalar("Loss", loss, epoch * len(dataloader) + i)
+		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
 
 		opt.zero_grad()
 		loss.backward()
