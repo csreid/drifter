@@ -23,7 +23,7 @@ class ModelBasedSimulation:
 		with tempfile.NamedTemporaryFile(mode="w", suffix=".urdf") as f:
 			urdf_str = xacro.process_file(
 				"robot.xacro",
-				mappings={"suspend": "true" },
+				mappings={"suspend": "true"},
 			).toxml()
 			f.write(urdf_str)
 			f.flush()

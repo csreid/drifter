@@ -93,11 +93,15 @@ class MPPI:
 		terminal_cost = distances[:, -1]
 
 		path_cost = distances.mean(dim=-1)
-		velocity_cost = (torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)) / 50.
+		velocity_cost = (
+			torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)
+		) / 50.0
 
 		action_cost = 0.01 * (actions._tensor**2).sum(dim=-1).sum(dim=-1)
 
-		return path_cost + action_cost + velocity_cost #terminal_cost + path_cost  # + action_cost #+ velocity_cost
+		return (
+			path_cost + action_cost + velocity_cost
+		)  # terminal_cost + path_cost  # + action_cost #+ velocity_cost
 
 	def _rollout_batch(self, initial_state, action_sequences, horizon=None):
 		"""Rollout a batch of action sequences"""
@@ -127,9 +131,12 @@ class MPPI:
 	def get_error_accumulation(self, rollout):
 		states = torch.stack([torch.tensor(r[0]) for r in rollout], dim=0)
 		actions = torch.stack([torch.tensor(r[1]) for r in rollout], dim=0)
-		next_states = BatchedState.from_tensor(torch.stack([torch.tensor(r[2]) for r in rollout], dim=0))
-		states_est = BatchedState.from_tensor(self._rollout_batch(states[0], actions.unsqueeze(0), horizon=10))
-
+		next_states = BatchedState.from_tensor(
+			torch.stack([torch.tensor(r[2]) for r in rollout], dim=0)
+		)
+		states_est = BatchedState.from_tensor(
+			self._rollout_batch(states[0], actions.unsqueeze(0), horizon=10)
+		)
 
 	def get_action(self, observation: State):
 		"""Get action using MPPI
@@ -240,7 +247,7 @@ if __name__ == "__main__":
 
 	recent_rollout = deque([], 10)
 
-	for j in range(1_000_000):#tqdm(range(1_000_000)):
+	for j in range(1_000_000):  # tqdm(range(1_000_000)):
 		a, costs = mppi_controller.get_action(s)
 
 		sp, r, done, trunc, _ = env.step(a)
@@ -253,7 +260,7 @@ if __name__ == "__main__":
 		recent_rollout.append((s, a, sp))
 		if j > 10:
 			pass
-			#mppi_controller.get_error_accumulation(recent_rollout)
+			# mppi_controller.get_error_accumulation(recent_rollout)
 
 		memory.add(transition)
 

@@ -13,7 +13,7 @@ from torch.nn import (
 	Conv2d,
 	MaxPool2d,
 	Flatten,
-	LSTM
+	LSTM,
 )
 from torch.optim import Adam, SGD
 from torch.nn import functional as F
@@ -36,6 +36,7 @@ from torch.utils.tensorboard import SummaryWriter
 from collections import deque
 from itertools import product
 from functools import reduce
+
 
 def _get_output_shape(model, input_shape):
 	"""
@@ -70,24 +71,20 @@ class EnvModel(Module):
 			Conv2d(3, 16, kernel_size=4, stride=2),
 			MaxPool2d(kernel_size=4, stride=2),
 			LeakyReLU(),
-
 			Conv2d(16, 64, kernel_size=3),
 			MaxPool2d(kernel_size=3),
 			LeakyReLU(),
-
 			Conv2d(64, 128, kernel_size=3),
 			MaxPool2d(kernel_size=3),
 			LeakyReLU(),
-
 			Conv2d(128, 512, kernel_size=3),
 			LeakyReLU(),
-
-			Flatten()
+			Flatten(),
 		)
 
 		viz_out_shape = reduce(
 			lambda acc, val: acc * val,
-			_get_output_shape(self._viz_pipeline, (3,  160, 240))
+			_get_output_shape(self._viz_pipeline, (3, 160, 240)),
 		)
 
 		self._h1 = Linear(viz_out_shape, 512)
@@ -122,9 +119,9 @@ class EnvModel(Module):
 		local_goal_position_out = self.local_goal_position_head(out)
 
 		return {
-			'position': position_out,
-			'velocity': velocity_out,
-			'orientation': orientation_out,
-			'goal': goal_position_out,
-			'local_goal': local_goal_position_out
+			"position": position_out,
+			"velocity": velocity_out,
+			"orientation": orientation_out,
+			"goal": goal_position_out,
+			"local_goal": local_goal_position_out,
 		}

@@ -232,7 +232,7 @@ class RCCarSimulation:
 			"ebrake": self.ebrake,
 			"is_flipped": self.is_flipped(),
 			"local_goal_pos": tuple(local_goal_pos),
-			"camera_img": self.capture_front_camera()
+			"camera_img": self.capture_front_camera(),
 		}
 
 	def is_flipped(self, flip_threshold=0.3):
@@ -333,12 +333,12 @@ if __name__ == "__main__":
 
 			# Step simulation and get state
 			state = sim.step_simulation()
-			#sim.render_camera_image()
+			# sim.render_camera_image()
 
 			# Render and collect frames
 			frame = sim.render()
 			if frame is not None:
-				cv2.imshow('Simulation', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+				cv2.imshow("Simulation", cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 				cv2.waitKey(1)
 
 			# Print state every 100 steps

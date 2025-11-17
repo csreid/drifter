@@ -17,7 +17,9 @@ action_space = spaces.Box(
 
 
 class DrifterEnv(gym.Env):
-	def __init__(self, action_duration=0.1, gui: bool = False, generate_terrain=False):
+	def __init__(
+		self, action_duration=0.1, gui: bool = False, generate_terrain=False
+	):
 		self.gui = gui
 
 		self.max_episode_steps = 1000
@@ -42,11 +44,12 @@ class DrifterEnv(gym.Env):
 
 		self.action_space = action_space
 
-		self.sim = RCCarSimulation()#gui=self.gui, generated_terrain=generate_terrain)
+		self.sim = (
+			RCCarSimulation()
+		)  # gui=self.gui, generated_terrain=generate_terrain)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False
-
 
 	def _realtime_sleep(self):
 		cur_timestamp = time.time()
@@ -83,7 +86,7 @@ class DrifterEnv(gym.Env):
 
 		obs = np.concatenate(oned_obs)
 
-		camera = simstate['camera_img']
+		camera = simstate["camera_img"]
 
 		return {"state": obs, "camera": camera}
 
@@ -183,7 +186,7 @@ class DrifterEnv(gym.Env):
 
 	def step(self, action):
 		self.current_step += 1
-		#self.sim.render_camera_image()
+		# self.sim.render_camera_image()
 
 		steering, throttle = action
 		self.sim.set_controls(steering, throttle)

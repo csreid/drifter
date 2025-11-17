@@ -28,6 +28,7 @@ def compress_image(image):
 	compressed = gzip.compress(image_bytes)
 	return compressed
 
+
 def init_database(db_path):
 	"""Initialize SQLite database with required schema."""
 	conn = sqlite3.connect(db_path)
