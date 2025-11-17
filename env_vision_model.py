@@ -87,6 +87,7 @@ class EnvModel(Module):
 		out = pack_padded_sequence(out, seqlens, batch_first=True, enforce_sorted=False)
 		out, _= self._rnn(out)
 		out, lens_out = pad_packed_sequence(out, batch_first=True)
+		out = F.leaky_relu(out)
 
 		velocity_out = self.velocity_head(out)
 		position_out = self.position_head(out)
