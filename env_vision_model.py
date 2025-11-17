@@ -99,6 +99,6 @@ class EnvModel(Module):
 			"position": position_out,
 			"velocity": velocity_out,
 			"orientation": orientation_out,
-			"goal": goal_position_out,
-			"local_goal": local_goal_position_out,
+			#"goal": goal_position_out,
+			#"local_goal": local_goal_position_out,
 		}
