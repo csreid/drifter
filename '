@@ -81,12 +81,18 @@ for epoch in range(20):
 				label="Estimated positions",
 			)
 
+			ax.plot(
+				true_x,
+				true_y,
+				label="True positions",
+				marker="^",
+			)
+			ax.set_xbound(-20, 20)
+			ax.set_ybound(-20, 20)
+
 			scatter = ax.scatter(
 				true_x, true_y, c=colors, cmap="plasma", label="True positions"
 			)
-
-			ax.set_xbound(-20, 20)
-			ax.set_ybound(-20, 20)
 
 			fig.colorbar(scatter, ax=ax, label="Timestep")
 
