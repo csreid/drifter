@@ -60,7 +60,7 @@ class EnvModel(Module):
 
 		viz_out_shape = reduce(
 			lambda acc, val: acc * val,
-			_get_output_shape(self._viz_pipeline, (3, 160, 240)),
+			_get_output_shape(self._viz_pipeline, (3, 480, 480)),
 		)
 
 		self._h1 = Linear(viz_out_shape, 512)
