@@ -55,13 +55,16 @@ for epoch in range(20):
 			ax.plot(
 				sample_position_est[0, :, 0].detach().cpu().numpy(),
 				sample_position_est[0, :, 1].detach().cpu().numpy(),
+				marker='o',
+				linestyle='--',
 				label='Estimated positions'
 			)
 
 			ax.plot(
 				true_sample_position[0, :, 0].detach().cpu().numpy(),
 				true_sample_position[0, :, 1].detach().cpu().numpy(),
-				label='True positions'
+				label='True positions',
+				marker='^',
 			)
 			ax.set_xbound(-100, 100)
 			ax.set_ybound(-100, 100)
