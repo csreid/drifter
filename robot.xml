@@ -66,10 +66,10 @@
     <light pos="20 20 30" dir="-1 -1 -1" diffuse="0.5 0.5 0.5"/>
     <geom name="ground" type="plane" size="100 100 0.1" material="grid"/>
 
-    <geom name="n_wall" type="box" pos="100 0 5" size="0.5 100 10"  rgba="1 1 1 1" />
-    <geom name="s_wall" type="box" pos="-100 0 5" size="0.5 100 10" rgba="1 0 0 1" />
-    <geom name="e_wall" type="box" pos="0 100 5" size="100 0.5 10"  rgba="0 1 0 1" />
-    <geom name="w_wall" type="box" pos="0 -100 5" size="100 0.5 10" rgba="0 0 1 1" />
+    <geom name="n_wall" type="box" pos="20 0 5" size="0.5 20 10"  rgba="1 1 1 1" />
+    <geom name="s_wall" type="box" pos="-20 0 5" size="0.5 20 10" rgba="1 0 0 1" />
+    <geom name="e_wall" type="box" pos="0 20 5" size="20 0.5 10"  rgba="0 1 0 1" />
+    <geom name="w_wall" type="box" pos="0 -20 5" size="20 0.5 10" rgba="0 0 1 1" />
 
     <!-- Goal marker -->
     <body name="goal" pos="10 10 2.5">
