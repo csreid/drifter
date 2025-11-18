@@ -47,7 +47,7 @@ for epoch in range(10):
 		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
 
 		with torch.no_grad():
-			sample_est = model(sample_imgs, sample_seqlens)
+			sample_est = model(sample_imgs.to(dev), sample_seqlens)
 			sample_position_est = sample_est['position']
 			true_sample_position = states['position']
 
