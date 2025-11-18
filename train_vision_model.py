@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 dataloader = create_dataloader(
 	db_path="drifter_data.db", batch_size=32, shuffle=True, num_workers=4
 )
+sample_dataloader = create_dataloader(
+	db_path="drifter_data.db", batch_size=1, shuffle=True, num_workers=4
+)
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -22,7 +25,7 @@ opt = Adam(model.parameters())
 
 writer = SummaryWriter()
 
-sample_imgs, sample_states, sample_seqlens = next(iter(dataloader))
+sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
 for epoch in range(10):
 	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
@@ -44,9 +47,9 @@ for epoch in range(10):
 		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
 
 		with torch.no_grad():
-			sample_est = model(sample_imgs[0].unsqueeze(0).to(dev), sample_seqlens)
+			sample_est = model(sample_imgs, sample_seqlens)
 			sample_position_est = sample_est['position']
-			true_sample_position = states['position'][0].unsqueeze(0)
+			true_sample_position = states['position']
 
 			fig, ax = plt.subplots()
 			ax.plot(
