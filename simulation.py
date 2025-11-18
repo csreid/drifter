@@ -220,7 +220,7 @@ class RCCarSimulation:
 			"position": tuple(car_pos),
 			"orientation": tuple(
 				[car_quat[1], car_quat[2], car_quat[3], car_quat[0]]
-			),  # Convert to [x,y,z,w]
+			),
 			"goal_pos": tuple(self.goal_pos),
 			"velocity_world": tuple(world_vel),
 			"velocity_local": tuple(local_vel),

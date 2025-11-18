@@ -218,7 +218,7 @@ def main():
 	batch = []
 	episode = str(uuid4())
 
-	for i in tqdm(range(10_000)):
+	for i in tqdm(range(1000)):
 		a = expl_policy.get_action(s)
 		sp, r, done, trunc, _ = env.step(a)
 

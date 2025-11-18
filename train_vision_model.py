@@ -7,6 +7,7 @@ from drifter_dataloader_sequential import (
 from torch.nn import MSELoss
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
 
 # Create the dataloader
 dataloader = create_dataloader(
@@ -20,7 +21,9 @@ criterion = MSELoss()
 opt = Adam(model.parameters())
 
 writer = SummaryWriter()
-# Use in training loop
+
+sample_imgs, sample_states, sample_seqlens = next(iter(dataloader))[0].unsqueeze(0)
+
 for epoch in range(10):
 	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
 		predictions = model(images.to(dev), seq_lens)
@@ -33,13 +36,36 @@ for epoch in range(10):
 			per_output_loss[key] = this_loss
 			loss += this_loss
 
-		# loss = criterion(predictions, states['velocity'].to(dev))
 		writer.add_scalars(
 			"loss_components",
 			per_output_loss,
 			epoch * len(dataloader) + idx,
 		)
 		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
+
+		with torch.no_grad():
+			sample_est = model(sample_imgs.to(dev), sample_seqlens)
+			sample_position_est = sample_est['position']
+			true_sample_position = states['position']
+
+			fig, ax = plt.subplots()
+			ax.plot(
+				sample_position_est[0, :, 0].detach().cpu().numpy(),
+				sample_position_est[0, :, 1].detach().cpu().numpy(),
+				label='Estimated positions'
+			)
+
+			ax.plot(
+				true_sample_position[0, :, 0].detach().cpu().numpy(),
+				true_sample_position[0, :, 1].detach().cpu().numpy(),
+				label='True positions'
+			)
+
+			ax.legend()
+
+			writer.add_figure('Estimated vs True positions', fig, epoch*len(dataloader) + idx)
+			plt.close(fig)
+
 
 		opt.zero_grad()
 		loss.backward()
