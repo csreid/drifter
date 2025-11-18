@@ -71,6 +71,7 @@ class DrifterSequenceDataset(Dataset):
             FROM transitions
             GROUP BY episode
             ORDER BY MIN(id)
+            limit 10
         """)
 
 		self.episodes = []

@@ -92,8 +92,8 @@ class EnvModel(Module):
 		velocity_out = self.velocity_head(out)
 		position_out = self.position_head(out)
 		orientation_out = self.orientation_head(out)
-		goal_position_out = self.goal_position_head(out)
-		local_goal_position_out = self.local_goal_position_head(out)
+		#goal_position_out = self.goal_position_head(out)
+		#local_goal_position_out = self.local_goal_position_head(out)
 
 		return {
 			"position": position_out,
