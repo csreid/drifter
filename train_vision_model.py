@@ -63,6 +63,8 @@ for epoch in range(10):
 				true_sample_position[0, :, 1].detach().cpu().numpy(),
 				label='True positions'
 			)
+			ax.set_xbound(-100, 100)
+			ax.set_ybound(-100, 100)
 
 			ax.legend()
 
