@@ -61,7 +61,7 @@ for epoch in range(20):
 		with torch.no_grad():
 			sample_est = model(sample_imgs.to(dev), sample_seqlens)
 			sample_position_est = sample_est["position"]
-			true_sample_position = states["position"]
+			true_sample_position = sample_states["position"]
 
 			fig, ax = plt.subplots()
 
