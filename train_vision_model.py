@@ -66,8 +66,8 @@ for epoch in range(10):
 				label='True positions',
 				marker='^',
 			)
-			ax.set_xbound(-100, 100)
-			ax.set_ybound(-100, 100)
+			ax.set_xbound(-20, 20)
+			ax.set_ybound(-20, 20)
 
 			ax.legend()
 
