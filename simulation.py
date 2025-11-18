@@ -85,8 +85,8 @@ class RCCarSimulation:
 		mujoco.mj_resetData(self.model, self.data)
 
 		# Set random car position
-		new_x = np.random.uniform(-32, 32)
-		new_y = np.random.uniform(-32, 32)
+		new_x = np.random.uniform(-15, 15)
+		new_y = np.random.uniform(-15, 15)
 		new_z = 0.5
 
 		car_qpos_idx = 0  # First 7 elements are free joint: pos (3) + quat (4)
@@ -99,8 +99,8 @@ class RCCarSimulation:
 		]  # Identity quat
 
 		# Set random goal position
-		goal_x = np.random.uniform(-64, 64)
-		goal_y = np.random.uniform(-64, 64)
+		goal_x = np.random.uniform(-15, 15)
+		goal_y = np.random.uniform(-15, 15)
 		self.goal_pos = np.array([goal_x, goal_y, 2.5])
 		self._update_goal_position()
 
