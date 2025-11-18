@@ -37,6 +37,50 @@ writer = SummaryWriter()
 
 sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
+def do_logging():
+	sample_est = model(sample_imgs.to(dev), sample_seqlens)
+	sample_position_est = sample_est["position"]
+	true_sample_position = sample_states["position"]
+
+	fig, ax = plt.subplots()
+
+	est_x = sample_position_est[0, :, 0].detach().cpu().numpy()
+	est_y = sample_position_est[0, :, 1].detach().cpu().numpy()
+	true_x = true_sample_position[0, :, 0].detach().cpu().numpy()
+	true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
+
+	n_pts = len(true_x)
+	colors = np.arange(n_pts)
+
+	ax.plot(
+		est_x,
+		est_y,
+		marker="o",
+		linestyle="--",
+		label="Estimated positions",
+	)
+
+	scatter = ax.scatter(
+		true_x, true_y, c=colors, cmap="plasma", label="True positions"
+	)
+
+	ax.set_xbound(-20, 20)
+	ax.set_ybound(-20, 20)
+
+	fig.colorbar(scatter, ax=ax, label="Timestep")
+
+	ax.legend()
+
+	writer.add_figure(
+		"Estimated vs True positions",
+		fig,
+		epoch * len(dataloader) + idx,
+	)
+	plt.close(fig)
+
+	writer.add_video('Sampled Trajectory', sample_imgs, epoch*len(dataloader) + idx)
+
+
 for epoch in range(20):
 	for idx, (images, states, seq_lens) in tqdm(
 		enumerate(dataloader), total=len(dataloader)
@@ -58,49 +102,9 @@ for epoch in range(20):
 		)
 		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
 
-		with torch.no_grad():
-			sample_est = model(sample_imgs.to(dev), sample_seqlens)
-			sample_position_est = sample_est["position"]
-			true_sample_position = sample_states["position"]
-
-			fig, ax = plt.subplots()
-
-			est_x = sample_position_est[0, :, 0].detach().cpu().numpy()
-			est_y = sample_position_est[0, :, 1].detach().cpu().numpy()
-			true_x = true_sample_position[0, :, 0].detach().cpu().numpy()
-			true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
-
-			n_pts = len(true_x)
-			colors = np.arange(n_pts)
-
-			ax.plot(
-				est_x,
-				est_y,
-				marker="o",
-				linestyle="--",
-				label="Estimated positions",
-			)
-
-			scatter = ax.scatter(
-				true_x, true_y, c=colors, cmap="plasma", label="True positions"
-			)
-
-			ax.set_xbound(-20, 20)
-			ax.set_ybound(-20, 20)
-
-			fig.colorbar(scatter, ax=ax, label="Timestep")
-
-			ax.legend()
-
-			writer.add_figure(
-				"Estimated vs True positions",
-				fig,
-				epoch * len(dataloader) + idx,
-			)
-			plt.close(fig)
-
-			writer.add_video('Sampled Trajectory', sample_imgs, epoch*len(dataloader) + idx)
-
 		opt.zero_grad()
 		loss.backward()
 		opt.step()
+
+	with torch.no_grad():
+		do_logging()
