@@ -8,6 +8,7 @@ from torch.nn import MSELoss
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Create the dataloader
 dataloader = create_dataloader(
@@ -59,7 +60,7 @@ for epoch in range(20):
 			true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
 
 			n_pts = len(est_x)
-			colors = np.arange(n_points)
+			colors = np.arange(n_pts)
 
 			ax.plot(
 				est_x,
