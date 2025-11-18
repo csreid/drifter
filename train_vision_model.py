@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 # Create the dataloader
 dataloader = create_dataloader(
-	db_path="drifter_data.db", batch_size=32, shuffle=True, num_workers=4, min_seq_len=40, max_seq_len=75
+	db_path="drifter_data.db", batch_size=4, shuffle=True, num_workers=4, min_seq_len=40, max_seq_len=75
 )
 sample_dataloader = create_dataloader(
 	db_path="drifter_data.db", batch_size=1, shuffle=True, num_workers=4, min_seq_len=40
@@ -27,7 +27,7 @@ writer = SummaryWriter()
 
 sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
-for epoch in range(10):
+for epoch in range(20):
 	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
 		predictions = model(images.to(dev), seq_lens)
 
