@@ -4,8 +4,11 @@ import numpy as np
 import cv2
 from pathlib import Path
 import random
-from drifter_dataloader_sequential import create_sequence_dataloader as create_dataloader
+from drifter_dataloader_sequential import (
+	create_sequence_dataloader as create_dataloader,
+)
 import matplotlib.pyplot as plt
+
 
 def decompress_image(compressed_data, shape, dtype):
 	"""Decompress gzip-compressed image data."""
@@ -15,9 +18,8 @@ def decompress_image(compressed_data, shape, dtype):
 	image = image.reshape(shape)
 	return image
 
-def render_episode_to_video(
-	db_path, output_path="episode_video.mp4", fps=10
-):
+
+def render_episode_to_video(db_path, output_path="episode_video.mp4", fps=10):
 	"""
 	Render an episode from the database to a video file.
 
@@ -27,9 +29,7 @@ def render_episode_to_video(
 	    fps: Frames per second for the video
 	"""
 
-	dl = create_dataloader(
-		db_path=db_path, batch_size=1, shuffle=True
-	)
+	dl = create_dataloader(db_path=db_path, batch_size=1, shuffle=True)
 
 	imgs, states, seq_lens = next(iter(dl))
 
@@ -38,7 +38,7 @@ def render_episode_to_video(
 	total_reward = 0.0
 
 	for image in imgs[0]:
-		image = (image.detach().numpy() * 255.).astype(np.uint8)
+		image = (image.detach().numpy() * 255.0).astype(np.uint8)
 		image = image.transpose(1, 2, 0)
 		# Initialize video writer on first frame
 		if video_writer is None:

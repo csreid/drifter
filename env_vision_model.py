@@ -84,21 +84,23 @@ class EnvModel(Module):
 		embed_dim = out.shape[-1]
 		out = out.view(batchsize, seqlen, embed_dim)
 
-		out = pack_padded_sequence(out, seqlens, batch_first=True, enforce_sorted=False)
-		out, _= self._rnn(out)
+		out = pack_padded_sequence(
+			out, seqlens, batch_first=True, enforce_sorted=False
+		)
+		out, _ = self._rnn(out)
 		out, lens_out = pad_packed_sequence(out, batch_first=True)
 		out = F.leaky_relu(out)
 
 		velocity_out = self.velocity_head(out)
 		position_out = self.position_head(out)
 		orientation_out = self.orientation_head(out)
-		#goal_position_out = self.goal_position_head(out)
-		#local_goal_position_out = self.local_goal_position_head(out)
+		# goal_position_out = self.goal_position_head(out)
+		# local_goal_position_out = self.local_goal_position_head(out)
 
 		return {
 			"position": position_out,
 			"velocity": velocity_out,
 			"orientation": orientation_out,
-			#"goal": goal_position_out,
-			#"local_goal": local_goal_position_out,
+			# "goal": goal_position_out,
+			# "local_goal": local_goal_position_out,
 		}

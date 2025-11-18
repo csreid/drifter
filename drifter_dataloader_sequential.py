@@ -200,7 +200,9 @@ class DrifterSequenceDataset(Dataset):
 			dtype = row[20]
 
 			decompressed = gzip.decompress(compressed_img)
-			image = np.frombuffer(decompressed, dtype=dtype).reshape(shape).copy()
+			image = (
+				np.frombuffer(decompressed, dtype=dtype).reshape(shape).copy()
+			)
 
 			# Convert to torch tensor
 			image = torch.from_numpy(image).float()

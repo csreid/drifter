@@ -12,10 +12,19 @@ import numpy as np
 
 # Create the dataloader
 dataloader = create_dataloader(
-	db_path="drifter_data.db", batch_size=4, shuffle=True, num_workers=4, min_seq_len=40, max_seq_len=75
+	db_path="drifter_data.db",
+	batch_size=4,
+	shuffle=True,
+	num_workers=4,
+	min_seq_len=40,
+	max_seq_len=75,
 )
 sample_dataloader = create_dataloader(
-	db_path="drifter_data.db", batch_size=1, shuffle=True, num_workers=4, min_seq_len=40
+	db_path="drifter_data.db",
+	batch_size=1,
+	shuffle=True,
+	num_workers=4,
+	min_seq_len=40,
 )
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -29,7 +38,9 @@ writer = SummaryWriter()
 sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
 for epoch in range(20):
-	for idx, (images, states, seq_lens) in tqdm(enumerate(dataloader), total=len(dataloader)):
+	for idx, (images, states, seq_lens) in tqdm(
+		enumerate(dataloader), total=len(dataloader)
+	):
 		predictions = model(images.to(dev), seq_lens)
 
 		loss = 0.0
@@ -49,8 +60,8 @@ for epoch in range(20):
 
 		with torch.no_grad():
 			sample_est = model(sample_imgs.to(dev), sample_seqlens)
-			sample_position_est = sample_est['position']
-			true_sample_position = states['position']
+			sample_position_est = sample_est["position"]
+			true_sample_position = states["position"]
 
 			fig, ax = plt.subplots()
 
@@ -65,29 +76,34 @@ for epoch in range(20):
 			ax.plot(
 				est_x,
 				est_y,
-				marker='o',
-				linestyle='--',
-				label='Estimated positions'
+				marker="o",
+				linestyle="--",
+				label="Estimated positions",
 			)
 
-			true_plt = ax.plot(
+			ax.plot(
 				true_x,
 				true_y,
-				label='True positions',
-				marker='^',
-				c=colors,
-				cmap='plasma'
+				label="True positions",
+				marker="^",
 			)
 			ax.set_xbound(-20, 20)
 			ax.set_ybound(-20, 20)
 
-			fig.colorbar(true_plt, ax=ax, label='Timestep')
+			scatter = ax.scatter(
+				true_x, true_y, c=colors, cmap="plasma", label="True positions"
+			)
+
+			fig.colorbar(scatter, ax=ax, label="Timestep")
 
 			ax.legend()
 
-			writer.add_figure('Estimated vs True positions', fig, epoch*len(dataloader) + idx)
+			writer.add_figure(
+				"Estimated vs True positions",
+				fig,
+				epoch * len(dataloader) + idx,
+			)
 			plt.close(fig)
-
 
 		opt.zero_grad()
 		loss.backward()
