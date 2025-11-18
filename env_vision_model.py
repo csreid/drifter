@@ -41,7 +41,7 @@ def _get_output_shape(model, input_shape):
 
 
 class EnvModel(Module):
-	def __init__(self):
+	def __init__(self, hidden_size=512):
 		super().__init__()
 		self._viz_pipeline = Sequential(
 			Conv2d(3, 16, kernel_size=4, stride=2),
@@ -63,15 +63,15 @@ class EnvModel(Module):
 			_get_output_shape(self._viz_pipeline, (3, 480, 480)),
 		)
 
-		self._h1 = Linear(viz_out_shape, 512)
+		self._h1 = Linear(viz_out_shape, hidden_size)
 
-		self._rnn = LSTM(512, 512, batch_first=True)
+		self._rnn = LSTM(hidden_size, hidden_size, batch_first=True)
 
-		self.velocity_head = Linear(512, 3)
-		self.position_head = Linear(512, 3)
-		self.orientation_head = Linear(512, 4)
-		self.goal_position_head = Linear(512, 3)
-		self.local_goal_position_head = Linear(512, 3)
+		self.velocity_head = Linear(hidden_size, 3)
+		self.position_head = Linear(hidden_size, 3)
+		self.orientation_head = Linear(hidden_size, 4)
+		self.goal_position_head = Linear(hidden_size, 3)
+		self.local_goal_position_head = Linear(hidden_size, 3)
 
 	def forward(self, X, seqlens):
 		batchsize, seqlen, C, H, W = X.shape

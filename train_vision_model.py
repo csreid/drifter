@@ -15,7 +15,7 @@ dataloader = create_dataloader(
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-model = EnvModel().to(dev)
+model = EnvModel(hidden_size=1024).to(dev)
 criterion = MSELoss()
 opt = Adam(model.parameters())
 

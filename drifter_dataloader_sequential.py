@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from typing import Tuple, Dict
 import random
+import matplotlib.pyplot as plt
 
 
 class DrifterSequenceDataset(Dataset):
@@ -71,7 +72,7 @@ class DrifterSequenceDataset(Dataset):
             FROM transitions
             GROUP BY episode
             ORDER BY MIN(id)
-            limit 10
+            limit 1
         """)
 
 		self.episodes = []
