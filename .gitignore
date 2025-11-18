@@ -5,3 +5,4 @@ runs
 transitions.csv
 model.pt
 *.db
+*.mp4
