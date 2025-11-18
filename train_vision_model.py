@@ -71,7 +71,7 @@ for epoch in range(20):
 
 			true_plt = ax.plot(
 				true_x,
-				true_y
+				true_y,
 				label='True positions',
 				marker='^',
 				c=colors,
