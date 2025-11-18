@@ -149,9 +149,6 @@ def render_episode_to_video(
 
 		# Write frame
 		video_writer.write(image)
-		cv2.imshow('Episode playback', image)
-		if cv2.waitKey(10) & 0xFF == ord('q'):  # ~30 fps, press 'q' to quit
-			break
 
 	# Release video writer
 	if video_writer is not None:
