@@ -99,6 +99,8 @@ for epoch in range(20):
 			)
 			plt.close(fig)
 
+			writer.add_video('Sampled Trajectory', sample_imgs, epoch*len(dataloader) + idx)
+
 		opt.zero_grad()
 		loss.backward()
 		opt.step()
