@@ -52,22 +52,35 @@ for epoch in range(20):
 			true_sample_position = states['position']
 
 			fig, ax = plt.subplots()
+
+			est_x = sample_position_est[0, :, 0].detach().cpu().numpy()
+			est_y = sample_position_est[0, :, 1].detach().cpu().numpy()
+			true_x = true_sample_position[0, :, 0].detach().cpu().numpy()
+			true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
+
+			n_pts = len(est_x)
+			colors = np.arange(n_points)
+
 			ax.plot(
-				sample_position_est[0, :, 0].detach().cpu().numpy(),
-				sample_position_est[0, :, 1].detach().cpu().numpy(),
+				est_x,
+				est_y,
 				marker='o',
 				linestyle='--',
 				label='Estimated positions'
 			)
 
-			ax.plot(
-				true_sample_position[0, :, 0].detach().cpu().numpy(),
-				true_sample_position[0, :, 1].detach().cpu().numpy(),
+			true_plt = ax.plot(
+				true_x,
+				true_y
 				label='True positions',
 				marker='^',
+				c=colors,
+				cmap='plasma'
 			)
 			ax.set_xbound(-20, 20)
 			ax.set_ybound(-20, 20)
+
+			fig.colorbar(true_plt, ax=ax, label='Timestep')
 
 			ax.legend()
 
