@@ -70,7 +70,7 @@ for epoch in range(20):
 			true_x = true_sample_position[0, :, 0].detach().cpu().numpy()
 			true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
 
-			n_pts = len(est_x)
+			n_pts = len(true_x)
 			colors = np.arange(n_pts)
 
 			ax.plot(
