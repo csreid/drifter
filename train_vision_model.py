@@ -37,6 +37,7 @@ writer = SummaryWriter()
 
 sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
+
 def do_logging():
 	sample_est = model(sample_imgs.to(dev), sample_seqlens)
 	sample_position_est = sample_est["position"]
@@ -78,7 +79,9 @@ def do_logging():
 	)
 	plt.close(fig)
 
-	writer.add_video('Sampled Trajectory', sample_imgs, epoch*len(dataloader) + idx)
+	writer.add_video(
+		"Sampled Trajectory", sample_imgs, epoch * len(dataloader) + idx
+	)
 
 
 for epoch in range(20):

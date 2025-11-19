@@ -6,7 +6,7 @@ from torch.nn import (
 	LeakyReLU,
 	Conv2d,
 	MaxPool2d,
-	AdaptiveAvgPool2d
+	AdaptiveAvgPool2d,
 	Flatten,
 	LSTM,
 )
