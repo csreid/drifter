@@ -22,11 +22,11 @@ class MPPI:
 		self._env_model = EnvModel(
 			self._action_space,
 			self._observation_space,
-			hidden_size=512,
-			hidden_layers=2,
+			hidden_size=2048,
+			hidden_layers=4,
 		)
 		self._env_model.load_state_dict(
-			torch.load("model.pt", weights_only=True)
+			torch.load("model.pt", weights_only=True, map_location=torch.device('cpu'))
 		)
 		self._env_model.eval()
 
@@ -46,7 +46,7 @@ class MPPI:
 
 	def _fit_batch(self, actions, observations, targets):
 		pred_X = BatchedStateDelta.from_tensor(
-			self._env_model(observations, actions)
+			self._env_model(observations['state'], actions)
 		)
 		loss, per_output_loss = self._loss_fn(pred_X, targets)
 
@@ -141,7 +141,7 @@ class MPPI:
 		)
 
 		# Convert to torch tensors
-		obs_tensor = torch.tensor(observation, dtype=torch.float32)
+		obs_tensor = torch.tensor(observation['state'], dtype=torch.float32)
 		actions_tensor = torch.tensor(action_sequences, dtype=torch.float32)
 
 		# Rollout trajectories
@@ -237,8 +237,8 @@ if __name__ == "__main__":
 		sp, r, done, trunc, _ = env.step(a)
 		transition = Transition(
 			action=Action.from_tensor(torch.tensor(a)),
-			state=State.from_tensor(torch.tensor(s)),
-			next_state=State.from_tensor(torch.tensor(sp)),
+			state=State.from_tensor(torch.tensor(s['state'])),
+			next_state=State.from_tensor(torch.tensor(sp['state'])),
 		)
 
 		recent_rollout.append((s, a, sp))
@@ -248,9 +248,6 @@ if __name__ == "__main__":
 
 		memory.add(transition)
 
-		writer.add_scalar(
-			"Distance from goal", torch.norm(torch.tensor(s[:3])), i + j
-		)
 		writer.add_scalar("Minimum estimated cost", costs.min(), i + j)
 
 		s = sp
