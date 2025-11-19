@@ -11,6 +11,7 @@ from batched_memory import (
 	BatchedStateDelta,
 )
 import mediapy as media
+from tqdm import tqdm
 
 
 class MPPI:
