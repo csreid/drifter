@@ -208,7 +208,7 @@ def main():
 	env_model = EnvModel(
 		action_space, observation_space, hidden_size=2048, hidden_layers=4
 	).to(dev)
-	env_model.load_state_dict(torch.load("model.pt", weights_only=True))
+	#env_model.load_state_dict(torch.load("model.pt", weights_only=True))
 	opt = Adam(env_model.parameters())
 	df = pd.read_csv("transitions.csv")
 	train_df = df.sample(frac=0.8)
@@ -252,9 +252,9 @@ def main():
 				action_test_X, obs_test_X, test_Y = next(iter(test_dataloader))
 
 				test_pred_X = BatchedStateDelta.from_tensor(
-					env_model(obs_test_X, action_test_X)
+					env_model(obs_test_X.to(dev), action_test_X.to(dev))
 				)
-				test_loss, _ = loss_fn(test_pred_X, test_Y)
+				test_loss, _ = loss_fn(test_pred_X, test_Y.to(dev))
 
 				writer.add_scalar(
 					"Test Loss", test_loss, epoch * len(train_dataloader) + i

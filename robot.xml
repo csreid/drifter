@@ -14,7 +14,31 @@
       height="512"
       rgb1=".1 .2 .3"
       rgb2=".2 .3 .4"
-    />
+      />
+    <!-- North wall - blue-ish -->
+    <texture name="wall_north_tex" type="2d" builtin="checker" 
+             rgb1="0.3 0.4 0.6" rgb2="0.4 0.5 0.7" 
+             width="512" height="512"/>
+    <material name="wall_north_mat" texture="wall_north_tex" texrepeat="200 200"/>
+    
+    <!-- South wall - red-ish -->
+    <texture name="wall_south_tex" type="2d" builtin="checker" 
+             rgb1="0.6 0.3 0.3" rgb2="0.7 0.4 0.4" 
+             width="512" height="512"/>
+    <material name="wall_south_mat" texture="wall_south_tex" texrepeat="200 200"/>
+    
+    <!-- East wall - green-ish -->
+    <texture name="wall_east_tex" type="2d" builtin="checker" 
+             rgb1="0.3 0.6 0.4" rgb2="0.4 0.7 0.5" 
+             width="512" height="512"/>
+    <material name="wall_east_mat" texture="wall_east_tex" texrepeat="200 200"/>
+    
+    <!-- West wall - yellow-ish -->
+    <texture name="wall_west_tex" type="2d" builtin="checker" 
+             rgb1="0.7 0.6 0.3" rgb2="0.8 0.7 0.4" 
+             width="512" height="512"/>
+    <material name="wall_west_mat" texture="wall_west_tex" texrepeat="200 200"/>
+
     <texture
       name="skybox"
       type="skybox"
@@ -66,10 +90,10 @@
     <light pos="20 20 30" dir="-1 -1 -1" diffuse="0.5 0.5 0.5"/>
     <geom name="ground" type="plane" size="100 100 0.1" material="grid"/>
 
-    <geom name="n_wall" type="box" pos="20 0 5" size="0.5 20 10"  rgba="1 1 1 1" />
-    <geom name="s_wall" type="box" pos="-20 0 5" size="0.5 20 10" rgba="1 0 0 1" />
-    <geom name="e_wall" type="box" pos="0 20 5" size="20 0.5 10"  rgba="0 1 0 1" />
-    <geom name="w_wall" type="box" pos="0 -20 5" size="20 0.5 10" rgba="0 0 1 1" />
+    <geom name="n_wall" material="wall_north_mat" type="box" pos="20 0 5" size="0.5 20 10"  />
+    <geom name="s_wall" material="wall_south_mat" type="box" pos="-20 0 5" size="0.5 20 10" />
+    <geom name="e_wall" material="wall_east_mat" type="box" pos="0 20 5" size="20 0.5 10"  />
+    <geom name="w_wall" material="wall_west_mat" type="box" pos="0 -20 5" size="20 0.5 10" />
 
     <!-- Goal marker -->
     <body name="goal" pos="10 10 2.5">
