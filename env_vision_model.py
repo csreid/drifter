@@ -72,7 +72,7 @@ class EnvModel(Module):
 		self.goal_position_head = Linear(hidden_size, 3)
 		self.local_goal_position_head = Linear(hidden_size, 3)
 
-	def forward(self, imgs, actions, seqlens):
+	def forward(self, imgs, seqlens):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
