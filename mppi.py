@@ -10,6 +10,7 @@ from batched_memory import (
 	BatchedState,
 	BatchedStateDelta,
 )
+import mediapy as media
 
 
 class MPPI:
@@ -74,8 +75,6 @@ class MPPI:
 			(absolute_goal_position - position)._tensor, dim=-1
 		)
 
-		terminal_cost = distances[:, -1]
-
 		path_cost = distances.mean(dim=-1)
 		velocity_cost = (
 			torch.norm(states.velocity._tensor, dim=-1).mean(dim=-1)
@@ -111,16 +110,6 @@ class MPPI:
 			trajectory_states.append(states._tensor)
 
 		return torch.stack(trajectory_states, dim=1)
-
-	def get_error_accumulation(self, rollout):
-		states = torch.stack([torch.tensor(r[0]) for r in rollout], dim=0)
-		actions = torch.stack([torch.tensor(r[1]) for r in rollout], dim=0)
-		next_states = BatchedState.from_tensor(
-			torch.stack([torch.tensor(r[2]) for r in rollout], dim=0)
-		)
-		states_est = BatchedState.from_tensor(
-			self._rollout_batch(states[0], actions.unsqueeze(0), horizon=10)
-		)
 
 	def get_action(self, observation: State):
 		"""Get action using MPPI
@@ -200,7 +189,7 @@ if __name__ == "__main__":
 	from drifter_env import DrifterEnv
 	from torch.utils.tensorboard import SummaryWriter
 
-	env = DrifterEnv(gui=True, generate_terrain=False)
+	env = DrifterEnv(generate_terrain=False)
 	mppi_controller = MPPI(env, lambda_=0.01)
 
 	test_a = torch.tensor(env.action_space.sample())
@@ -227,12 +216,14 @@ if __name__ == "__main__":
 	s, _ = env.reset()
 	done = False
 	mppi_controller.reset_trajectory()
-	env.set_realtime(True)
 
 	recent_rollout = deque([], 10)
 
-	for j in range(1_000_000):  # tqdm(range(1_000_000)):
+	frames = []
+	for j in range(1_000):
 		a, costs = mppi_controller.get_action(s)
+		camera_out = env._sim.capture_front_camera()
+		frames.append(camera_out)
 
 		sp, r, done, trunc, _ = env.step(a)
 		transition = Transition(
@@ -244,7 +235,6 @@ if __name__ == "__main__":
 		recent_rollout.append((s, a, sp))
 		if j > 10:
 			pass
-			# mppi_controller.get_error_accumulation(recent_rollout)
 
 		memory.add(transition)
 
@@ -256,4 +246,5 @@ if __name__ == "__main__":
 			s, _ = env.reset()
 			mppi_controller.reset_trajectory()
 
+	media.write_video('mppi_sim.mp4', frames, fps=10)
 	print("Done!")
