@@ -205,7 +205,7 @@ class DrifterSequenceDataset(Dataset):
 
 			if rowid not in self._img_cache:
 				decompressed = gzip.decompress(compressed_img)
-				self._img_cache[rowid] = decompressed]
+				self._img_cache[rowid] = decompressed
 			else:
 				decompressed = self._img_cache[rowid]
 
