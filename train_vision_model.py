@@ -88,6 +88,12 @@ for epoch in range(20):
 	for idx, (images, states, seq_lens) in tqdm(
 		enumerate(dataloader), total=len(dataloader)
 	):
+		totalidx = epoch * len(dataloader) + idx
+
+		if (totalidx % 100) == 0:
+			with torch.no_grad():
+				do_logging()
+
 		predictions = model(images.to(dev), seq_lens)
 
 		loss = 0.0
@@ -103,11 +109,8 @@ for epoch in range(20):
 			per_output_loss,
 			epoch * len(dataloader) + idx,
 		)
-		writer.add_scalar("Loss", loss, epoch * len(dataloader) + idx)
+		writer.add_scalar("Loss", loss, totalidx)
 
 		opt.zero_grad()
 		loss.backward()
 		opt.step()
-
-	with torch.no_grad():
-		do_logging()
