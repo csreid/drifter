@@ -8,6 +8,7 @@ from torch.nn import (
 )
 from torch.optim import Adam
 from torch.nn import functional as F
+from torch import nn
 from drifter_env import observation_space, action_space
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
