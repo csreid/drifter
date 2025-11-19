@@ -222,7 +222,7 @@ if __name__ == "__main__":
 	frames = []
 	for j in range(1_000):
 		a, costs = mppi_controller.get_action(s)
-		camera_out = env._sim.capture_front_camera()
+		camera_out = env.sim.capture_front_camera()
 		frames.append(camera_out)
 
 		sp, r, done, trunc, _ = env.step(a)
