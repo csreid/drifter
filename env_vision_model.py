@@ -52,7 +52,7 @@ class EnvModel(Module):
 			Conv2d(64, 128, kernel_size=3, stride=2),
 			LeakyReLU(),
 			Conv2d(128, 512, kernel_size=3, stride=2),
-			AdaptiveAvgPool2d(1, 512),
+			AdaptiveAvgPool2d((1, 512)),
 			LeakyReLU(),
 			Flatten(),
 		)
