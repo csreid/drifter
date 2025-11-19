@@ -232,5 +232,4 @@ if __name__ == "__main__":
 
 		if done or truncated:
 			print(f"Episode ended at step {step}")
-			print(f"Success: {info['success']}")
 			obs, info = env.reset()
