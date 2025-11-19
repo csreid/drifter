@@ -6,6 +6,7 @@ from torch.nn import (
 	LeakyReLU,
 	Conv2d,
 	MaxPool2d,
+	AdaptiveAvgPool2d
 	Flatten,
 	LSTM,
 )
@@ -45,15 +46,13 @@ class EnvModel(Module):
 		super().__init__()
 		self._viz_pipeline = Sequential(
 			Conv2d(3, 16, kernel_size=4, stride=2),
-			MaxPool2d(kernel_size=4, stride=2),
 			LeakyReLU(),
-			Conv2d(16, 64, kernel_size=3),
-			MaxPool2d(kernel_size=3),
+			Conv2d(16, 64, kernel_size=3, stride=2),
 			LeakyReLU(),
-			Conv2d(64, 128, kernel_size=3),
-			MaxPool2d(kernel_size=3),
+			Conv2d(64, 128, kernel_size=3, stride=2),
 			LeakyReLU(),
-			Conv2d(128, 512, kernel_size=3),
+			Conv2d(128, 512, kernel_size=3, stride=2),
+			AdaptiveAvgPool2d(1, 512),
 			LeakyReLU(),
 			Flatten(),
 		)
@@ -73,10 +72,10 @@ class EnvModel(Module):
 		self.goal_position_head = Linear(hidden_size, 3)
 		self.local_goal_position_head = Linear(hidden_size, 3)
 
-	def forward(self, X, seqlens):
-		batchsize, seqlen, C, H, W = X.shape
+	def forward(self, imgs, actions, seqlens):
+		batchsize, seqlen, C, H, W = imgs.shape
 
-		out = X.view(seqlen * batchsize, C, H, W)
+		out = imgs.view(seqlen * batchsize, C, H, W)
 		out = self._viz_pipeline(out)
 		out = self._h1(out)
 		out = F.leaky_relu(out)
