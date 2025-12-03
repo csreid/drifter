@@ -220,6 +220,9 @@ def main():
 
 	for i in tqdm(range(1000)):
 		a = expl_policy.get_action(s)
+		if len(a) > 1 and env.simplified:
+			a = a[0]
+
 		sp, r, done, trunc, _ = env.step(a)
 
 		action = a if not env.simplified else np.array([a[0], 0])
