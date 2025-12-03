@@ -182,8 +182,8 @@ class InverseDynamicsDataset(Dataset):
 		actions = np.stack(actions, axis=0)  # (T, 2)
 
 		# Convert to torch tensors and rearrange to (T, C, H, W)
-		images = torch.from_numpy(images).permute(0, 3, 1, 2)  # (T, C, H, W)
-		actions = torch.from_numpy(actions)  # (T, 2)
+		images = torch.from_numpy(images).permute(0, 3, 1, 2).float()  # (T, C, H, W)
+		actions = torch.from_numpy(actions).float()  # (T, 2)
 
 		return images, actions
 
