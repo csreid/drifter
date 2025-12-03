@@ -58,6 +58,7 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 			}
 		)
 
+
 	avg_loss = total_loss / total_samples
 	return avg_loss
 
@@ -115,6 +116,93 @@ def validate(model, dataloader, criterion, device):
 	}
 
 	return metrics
+
+
+def plot_predictions_to_tensorboard(
+	model, sample_seq, writer, global_step, device
+):
+	"""
+	Visualize model predictions vs ground truth and log to tensorboard.
+
+	Args:
+	    model: The trained model
+	    sample_seq: Tuple of (images, actions) from dataloader
+	    writer: TensorBoard SummaryWriter
+	    global_step: Current training step/epoch
+	    device: torch device
+	"""
+	model.eval()
+
+	with torch.no_grad():
+		images, actions = sample_seq
+		images = images.to(device).float()
+		actions = actions.to(device).float()
+
+		# Get first sequence from batch
+		images_single = images[0:1]  # (1, T, C, H, W)
+		actions_single = actions[0]  # (T, 2)
+
+		# Target actions (drop last)
+		target_actions = actions_single[:-1]  # (T-1, 2)
+
+		# Get predictions
+		batch_size, seq_len = images_single.shape[0], images_single.shape[1]
+		seqlens = torch.full((batch_size,), seq_len, dtype=torch.long)
+		predicted_actions = model.inverse_dynamics(
+			images_single, seqlens
+		)  # (1, T, 2)
+		predicted_actions = predicted_actions[0, :-1, :]  # (T-1, 2)
+
+		# Move to CPU for plotting
+		pred_np = predicted_actions.cpu().numpy()
+		target_np = target_actions.cpu().numpy()
+
+		# Create plot
+		fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+		timesteps = range(len(target_np))
+
+		# Steering plot
+		ax1.plot(
+			timesteps, target_np[:, 0], "b-", linewidth=2, label="True Steering"
+		)
+		ax1.plot(
+			timesteps,
+			pred_np[:, 0],
+			"b--",
+			linewidth=2,
+			label="Predicted Steering",
+		)
+		ax1.set_ylabel("Steering", fontsize=12)
+		ax1.set_ylim(-1.1, 1.1)
+		ax1.axhline(y=0, color="k", linestyle=":", alpha=0.3)
+		ax1.legend(loc="upper right")
+		ax1.grid(True, alpha=0.3)
+
+		# Throttle plot
+		ax2.plot(
+			timesteps, target_np[:, 1], "r-", linewidth=2, label="True Throttle"
+		)
+		ax2.plot(
+			timesteps,
+			pred_np[:, 1],
+			"r--",
+			linewidth=2,
+			label="Predicted Throttle",
+		)
+		ax2.set_xlabel("Timestep", fontsize=12)
+		ax2.set_ylabel("Throttle", fontsize=12)
+		ax2.set_ylim(-1.1, 1.1)
+		ax2.axhline(y=0, color="k", linestyle=":", alpha=0.3)
+		ax2.legend(loc="upper right")
+		ax2.grid(True, alpha=0.3)
+
+		plt.tight_layout()
+
+		# Log to tensorboard
+		writer.add_figure("predictions/action_comparison", fig, global_step)
+		plt.close(fig)
+
+	model.train()
 
 
 def main(args):
@@ -177,6 +265,8 @@ def main(args):
 	# Training loop
 	best_val_loss = float("inf")
 
+	sample_seq = next(iter(train_loader))
+
 	for epoch in range(1, args.epochs + 1):
 		print(f"\n{'=' * 50}")
 		print(f"Epoch {epoch}/{args.epochs}")
@@ -188,6 +278,7 @@ def main(args):
 		)
 		print(f"Train Loss: {train_loss:.4f}")
 		writer.add_scalar("Loss/train", train_loss, epoch)
+		plot_predictions_to_tensorboard(model, sample_seq, writer, epoch, device)
 
 		# Validate
 		if val_loader and epoch % args.val_every == 0:
