@@ -200,7 +200,12 @@ class DrifterEnv(gym.Env):
 		self.current_step += 1
 		# self.sim.render_camera_image()
 
-		throttle, steering = action
+		if self.simplified:
+			throttle = action
+			steering = 0.
+		else:
+			throttle, steering = action
+
 		self.sim.set_controls(steering, throttle)
 		for _ in range(self.n_substeps):
 			self.sim.step_simulation()
