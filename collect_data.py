@@ -206,7 +206,7 @@ def main():
 	# Initialize database
 	conn = init_database(db_path)
 
-	env = DrifterEnv(gui=True)
+	env = DrifterEnv(gui=True, simplified=True)
 	expl_policy = ExplorationPolicy(
 		env.action_space,
 		maneuver_duration=15,
@@ -222,11 +222,13 @@ def main():
 		a = expl_policy.get_action(s)
 		sp, r, done, trunc, _ = env.step(a)
 
+		action = a if not env.simplified else np.array([a, 0])
+
 		# Store transition in batch
 		batch.append(
 			{
 				"state": s,
-				"action": a,
+				"action": action,
 				"next_state": sp,
 				"reward": r,
 				"done": done,

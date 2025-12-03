@@ -4,20 +4,10 @@ from simulation import RCCarSimulation
 from gymnasium import spaces
 import gymnasium as gym
 
-observation_space = gym.spaces.Box(
-	low=-np.inf, high=np.inf, shape=(17,), dtype=np.float32
-)
-action_space = spaces.Box(
-	low=np.array([-1.0, -1.0]),
-	high=np.array([1.0, 1.0]),
-	shape=(2,),
-	dtype=np.float32,
-)
-
 
 class DrifterEnv(gym.Env):
 	def __init__(
-		self, action_duration=0.1, gui: bool = False, generate_terrain=False
+		self, action_duration=0.1, gui: bool = False, generate_terrain=False, simplified=False
 	):
 		self.gui = gui
 
@@ -35,7 +25,30 @@ class DrifterEnv(gym.Env):
 		# }
 		# )
 
+		if not simplified:
+			observation_space = gym.spaces.Box(
+				low=-np.inf, high=np.inf, shape=(17,), dtype=np.float32
+			)
+			action_space = spaces.Box(
+				low=np.array([-1.0, -1.0]),
+				high=np.array([1.0, 1.0]),
+				shape=(2,),
+				dtype=np.float32,
+			)
+		else:
+			observation_space = gym.spaces.Box(
+				low=-np.inf, high=np.inf, shape=(17,), dtype=np.float32
+			)
+			action_space = spaces.Box(
+				low=np.array([-1.0]),
+				high=np.array([1.0]),
+				shape=(1,),
+				dtype=np.float32,
+			)
+
+
 		self.observation_space = observation_space
+		self.simplified=simplified
 
 		# self.action_space = spaces.Box(
 		# low=1., high=1., shape=(2,), dtype=np.float32
@@ -187,7 +200,7 @@ class DrifterEnv(gym.Env):
 		self.current_step += 1
 		# self.sim.render_camera_image()
 
-		steering, throttle = action
+		throttle, steering = action
 		self.sim.set_controls(steering, throttle)
 		for _ in range(self.n_substeps):
 			self.sim.step_simulation()
