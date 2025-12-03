@@ -9,6 +9,7 @@ import numpy as np
 
 from inverse_dynamics import create_inverse_dynamics_dataloader
 from env_vision_model import EnvModel
+import matplotlib.pyplot as plt
 
 
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
@@ -273,12 +274,12 @@ def main(args):
 		print(f"{'=' * 50}")
 
 		# Train
+		plot_predictions_to_tensorboard(model, sample_seq, writer, epoch, device)
 		train_loss = train_epoch(
 			model, train_loader, optimizer, criterion, device, epoch
 		)
 		print(f"Train Loss: {train_loss:.4f}")
 		writer.add_scalar("Loss/train", train_loss, epoch)
-		plot_predictions_to_tensorboard(model, sample_seq, writer, epoch, device)
 
 		# Validate
 		if val_loader and epoch % args.val_every == 0:
