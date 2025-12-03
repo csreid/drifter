@@ -9,6 +9,8 @@ from torch.nn import (
 	AdaptiveAvgPool2d,
 	Flatten,
 	LSTM,
+	ModuleList,
+	ModuleDict
 )
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -52,7 +54,7 @@ class EnvModel(Module):
 			Conv2d(64, 128, kernel_size=3, stride=2),
 			LeakyReLU(),
 			Conv2d(128, 512, kernel_size=3, stride=2),
-			AdaptiveAvgPool2d((1, 512)),
+			AdaptiveAvgPool2d((1, 1)),
 			LeakyReLU(),
 			Flatten(),
 		)
@@ -66,13 +68,17 @@ class EnvModel(Module):
 
 		self._rnn = LSTM(hidden_size, hidden_size, batch_first=True)
 
-		self.velocity_head = Linear(hidden_size, 3)
-		self.position_head = Linear(hidden_size, 3)
-		self.orientation_head = Linear(hidden_size, 4)
-		self.goal_position_head = Linear(hidden_size, 3)
-		self.local_goal_position_head = Linear(hidden_size, 3)
+		self._dynamics_output_heads = ModuleDict({
+			'velocity': Linear(hidden_size, 3),
+			'position': Linear(hidden_size, 3),
+			'orientation': Linear(hidden_size, 4),
+			'goal_position': Linear(hidden_size, 3),
+			'local_goal_position': Linear(hidden_size, 3)
+		})
 
-	def forward(self, imgs, seqlens):
+		self._id_output_head = Linear(hidden_size, 2) # for 2-d action; steering and throttle/brake/reverse
+
+	def _get_hidden(self, imgs, seqlens):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
@@ -90,16 +96,19 @@ class EnvModel(Module):
 		out, lens_out = pad_packed_sequence(out, batch_first=True)
 		out = F.leaky_relu(out)
 
-		velocity_out = self.velocity_head(out)
-		position_out = self.position_head(out)
-		orientation_out = self.orientation_head(out)
-		# goal_position_out = self.goal_position_head(out)
-		# local_goal_position_out = self.local_goal_position_head(out)
+		return out
+
+	def inverse_dynamics(self, imgs, seqlens):
+		out = self._get_hidden(imgs, seqlens)
+		out = self._id_output_head(out)
+
+		return out
+
+	def forward(self, imgs, seqlens):
+		out = self._get_hidden(imgs, seqlens)
 
 		return {
-			"position": position_out,
-			"velocity": velocity_out,
-			"orientation": orientation_out,
-			# "goal": goal_position_out,
-			# "local_goal": local_goal_position_out,
+			key: val(out)
+			for key, val
+			in self._dynamics_output_heads.items()
 		}
