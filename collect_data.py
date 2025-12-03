@@ -222,6 +222,7 @@ def main():
 		a = expl_policy.get_action(s)
 		sp, r, done, trunc, _ = env.step(a)
 
+		print(a)
 		action = a if not env.simplified else np.array([a, 0])
 
 		# Store transition in batch
