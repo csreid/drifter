@@ -98,7 +98,8 @@ class InverseDynamicsDataset(Dataset):
 	) -> np.ndarray:
 		"""Decompress a gzipped image blob and reshape it."""
 		decompressed = gzip.decompress(image_blob)
-		image = np.frombuffer(decompressed, dtype=np.float32)
+		image = np.frombuffer(decompressed, dtype=np.uint8) / 255.
+
 		return image.reshape(shape)
 
 	def _load_image(
