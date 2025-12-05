@@ -221,7 +221,7 @@ def main(args):
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	# Setup tensorboard
-	writer = SummaryWriter()
+	writer = SummaryWriter('outputs/runs')
 
 	# Create dataloaders
 	print("Creating dataloaders...")
