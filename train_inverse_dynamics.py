@@ -201,6 +201,7 @@ def plot_predictions_to_tensorboard(
 
 		# Log to tensorboard
 		writer.add_figure("predictions/action_comparison", fig, global_step)
+		writer.add_video("sample", images, global_step)
 		plt.close(fig)
 
 	model.train()
@@ -220,7 +221,7 @@ def main(args):
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	# Setup tensorboard
-	writer = SummaryWriter(output_dir / "runs")
+	writer = SummaryWriter()
 
 	# Create dataloaders
 	print("Creating dataloaders...")
