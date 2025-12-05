@@ -60,7 +60,10 @@ class EnvModel(Module):
 #		)
 
 		backbone = resnet18(pretrained=True)
-		self._viz_pipeline = torch.nn.Sequential(*list(backbone.children())[:-1])
+		self._viz_pipeline = torch.nn.Sequential(
+			*list(backbone.children())[:-1],
+			Flatten()
+		)
 
 		viz_out_shape = 512
 
