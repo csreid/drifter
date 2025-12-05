@@ -227,7 +227,7 @@ def main(render):
 
 		sp, r, done, trunc, _ = env.step(a)
 
-		action = a if not env.simplified else np.array([a[0], 0])
+		action = a if not env.simplified else np.array([a, 0])
 
 		# Store transition in batch
 		batch.append(
