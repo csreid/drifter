@@ -62,10 +62,7 @@ class EnvModel(Module):
 		backbone = resnet18(pretrained=True)
 		self._viz_pipeline = torch.nn.Sequential(*list(backbone.children())[:-1])
 
-		viz_out_shape = reduce(
-			lambda acc, val: acc * val,
-			_get_output_shape(self._viz_pipeline, (3, 480, 480)),
-		)
+		viz_out_shape = 512
 
 		self._h1 = Linear(viz_out_shape, hidden_size)
 
