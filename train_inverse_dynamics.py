@@ -201,7 +201,6 @@ def plot_predictions_to_tensorboard(
 
 		# Log to tensorboard
 		writer.add_figure("predictions/action_comparison", fig, global_step)
-		writer.add_video("sample", images, global_step)
 		plt.close(fig)
 
 	model.train()
@@ -268,6 +267,7 @@ def main(args):
 	best_val_loss = float("inf")
 
 	sample_seq = next(iter(train_loader))
+	writer.add_video("sample", sample_seq[0], 0)
 
 	for epoch in range(1, args.epochs + 1):
 		print(f"\n{'=' * 50}")
