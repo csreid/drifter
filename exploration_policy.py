@@ -195,7 +195,7 @@ class ExplorationPolicy:
 		action = np.array([steering, throttle])
 		return np.clip(action, self._action_space.low, self._action_space.high)
 
-	def _execute_zigzag(self):k
+	def _execute_zigzag(self):
 		"""Rapid steering changes at moderate speed"""
 		p = self._maneuver_params
 		steps_elapsed = self._total_steps - p["start_step"]

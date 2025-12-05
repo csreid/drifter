@@ -15,7 +15,7 @@ from torch.nn import (
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from functools import reduce
-
+from torchvision.models import resnet18
 
 def _get_output_shape(model, input_shape):
 	"""
@@ -44,20 +44,23 @@ def _get_output_shape(model, input_shape):
 
 
 class EnvModel(Module):
-	def __init__(self, hidden_size=512):
+	def __init__(self, hidden_size=512, pretrained_vision=False):
 		super().__init__()
-		self._viz_pipeline = Sequential(
-			Conv2d(3, 16, kernel_size=4, stride=2),
-			LeakyReLU(),
-			Conv2d(16, 64, kernel_size=3, stride=2),
-			LeakyReLU(),
-			Conv2d(64, 128, kernel_size=3, stride=2),
-			LeakyReLU(),
-			Conv2d(128, 512, kernel_size=3, stride=2),
-			AdaptiveAvgPool2d((1, 1)),
-			LeakyReLU(),
-			Flatten(),
-		)
+#		self._viz_pipeline = Sequential(
+#			Conv2d(3, 16, kernel_size=4, stride=2),
+#			LeakyReLU(),
+#			Conv2d(16, 64, kernel_size=3, stride=2),
+#			LeakyReLU(),
+#			Conv2d(64, 128, kernel_size=3, stride=2),
+#			LeakyReLU(),
+#			Conv2d(128, 512, kernel_size=3, stride=2),
+#			AdaptiveAvgPool2d((1, 1)),
+#			LeakyReLU(),
+#			Flatten(),
+#		)
+
+		backbone = resnet18(pretrained=True)
+		self._viz_pipeline = torch.nn.Sequential(*list(backbone.children())[:-1])
 
 		viz_out_shape = reduce(
 			lambda acc, val: acc * val,

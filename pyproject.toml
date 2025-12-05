@@ -32,6 +32,7 @@ dependencies = [
     "mypy>=1.18.2",
     "mujoco>=3.3.7",
     "mediapy>=1.2.4",
+    "torchvision>=0.24.1",
 ]
 
 [tool.ruff]
