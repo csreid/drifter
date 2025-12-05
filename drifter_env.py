@@ -57,8 +57,8 @@ class DrifterEnv(gym.Env):
 		self.action_space = action_space
 
 		self.sim = (
-			RCCarSimulation()
-		)  # gui=self.gui, generated_terrain=generate_terrain)
+			RCCarSimulation(render=self.gui, generated_terrain=generate_terrain)
+		)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
 		self._realtime = False

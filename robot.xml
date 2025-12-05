@@ -20,19 +20,19 @@
              rgb1="0.3 0.4 0.6" rgb2="0.4 0.5 0.7" 
              width="512" height="512"/>
     <material name="wall_north_mat" texture="wall_north_tex" texrepeat="200 200"/>
-    
+
     <!-- South wall - red-ish -->
     <texture name="wall_south_tex" type="2d" builtin="checker" 
              rgb1="0.6 0.3 0.3" rgb2="0.7 0.4 0.4" 
              width="512" height="512"/>
     <material name="wall_south_mat" texture="wall_south_tex" texrepeat="200 200"/>
-    
+
     <!-- East wall - green-ish -->
     <texture name="wall_east_tex" type="2d" builtin="checker" 
              rgb1="0.3 0.6 0.4" rgb2="0.4 0.7 0.5" 
              width="512" height="512"/>
     <material name="wall_east_mat" texture="wall_east_tex" texrepeat="200 200"/>
-    
+
     <!-- West wall - yellow-ish -->
     <texture name="wall_west_tex" type="2d" builtin="checker" 
              rgb1="0.7 0.6 0.3" rgb2="0.8 0.7 0.4" 
@@ -106,7 +106,7 @@
       <freejoint/>
       <geom name="chassis" type="box" size="0.25 0.075 0.025"
             material="black" mass="8.0"/>
-			<camera name="front_camera_l" pos="0.1 0 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="45" />
+      <camera name="front_camera_l" pos="0.1 0 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="45" />
       <camera name="front_camera_r" pos="0.1 0 0.5" xyaxes="0 -1 0 0.1 0 1" fovy="45"/>
 
       <!-- Front Left Wheel Assembly -->
@@ -168,9 +168,13 @@
 
     <!-- Drive actuators (torque control for rear wheels) -->
     <motor name="rear_left_drive" joint="rear_left_wheel_joint"
-           gear="1" ctrlrange="-2 2"/>
+           gear="11.82" ctrlrange="-0.15 0.15"/>
     <motor name="rear_right_drive" joint="rear_right_wheel_joint"
-           gear="1" ctrlrange="-2 2"/>
+           gear="11.82" ctrlrange="-0.15 0.15"/>
+    <motor name="front_left_drive" joint="front_left_wheel_joint"
+           gear="11.82" ctrlrange="-0.15 0.15"/>
+    <motor name="front_right_drive" joint="front_right_wheel_joint"
+           gear="11.82" ctrlrange="-0.15 0.15"/>
   </actuator>
 
   <sensor>

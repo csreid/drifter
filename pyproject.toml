@@ -33,6 +33,7 @@ dependencies = [
     "mujoco>=3.3.7",
     "mediapy>=1.2.4",
     "torchvision>=0.24.1",
+    "click>=8.3.1",
 ]
 
 [tool.ruff]

@@ -5,6 +5,7 @@ import numpy as np
 from drifter_env import DrifterEnv
 from exploration_policy import ExplorationPolicy
 from uuid import uuid4
+import click
 
 
 def compress_image(image):
@@ -198,15 +199,16 @@ def add_batch_to_database(conn, batch, episode):
 
 	conn.commit()
 
-
-def main():
+@click.command()
+@click.option('--render/--norender', default=False, is_flag=True)
+def main(render):
 	db_path = "drifter_data.db"
 	batch_size = 100  # Batch transitions before writing to DB
 
 	# Initialize database
 	conn = init_database(db_path)
 
-	env = DrifterEnv(gui=True, simplified=True)
+	env = DrifterEnv(gui=render, simplified=True)
 	expl_policy = ExplorationPolicy(
 		env.action_space,
 		maneuver_duration=15,
