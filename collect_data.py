@@ -3,7 +3,7 @@ import gzip
 import sqlite3
 import numpy as np
 from drifter_env import DrifterEnv
-from exploration_policy import ExplorationPolicy
+from exploration_policy import ExplorationPolicy, SimpleExplorationPolicy
 from uuid import uuid4
 import click
 
@@ -208,13 +208,8 @@ def main(render):
 	# Initialize database
 	conn = init_database(db_path)
 
-	env = DrifterEnv(gui=render, simplified=True)
-	expl_policy = ExplorationPolicy(
-		env.action_space,
-		maneuver_duration=15,
-		aggressive_prob=0.35,
-		velocity_threshold=0.3,
-	)
+	env = DrifterEnv(gui=render)
+	expl_policy = SimpleExplorationPolicy()
 
 	s, _ = env.reset()
 	batch = []
@@ -222,18 +217,14 @@ def main(render):
 
 	for i in tqdm(range(1000)):
 		a = expl_policy.get_action(s)
-		if len(a) > 1 and env.simplified:
-			a = a[0]
 
 		sp, r, done, trunc, _ = env.step(a)
-
-		action = a if not env.simplified else np.array([a, 0])
 
 		# Store transition in batch
 		batch.append(
 			{
 				"state": s,
-				"action": action,
+				"action": a,
 				"next_state": sp,
 				"reward": r,
 				"done": done,

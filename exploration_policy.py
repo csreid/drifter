@@ -295,3 +295,26 @@ class ExplorationPolicy:
 			print(
 				f"  {maneuver.value:25s}: {count:4d} started, {completed:4d} completed"
 			)
+
+class SimpleExplorationPolicy:
+	"""
+	Literally just move forward or backward
+	Use a constant throttle value for n
+	steps, then change
+	"""
+
+	def __init__(self, duration_steps=100):
+		self._current_step = 0
+		self._current_throttle = None
+		self._duration_steps = duration_steps
+
+	def get_action(self, *args, **kwargs):
+		if (self._current_step % self._duration_steps) == 0:
+			self._current_throttle = self._new_throttle()
+
+		self._current_step += 1
+
+		return np.array([0., self._current_throttle])
+
+	def _new_throttle(self):
+		return np.random.uniform(-1, 1)
