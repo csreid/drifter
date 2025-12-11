@@ -199,9 +199,14 @@ def add_batch_to_database(conn, batch, episode):
 
 	conn.commit()
 
+
 @click.command()
-@click.option('--render/--norender', default=False, is_flag=True)
-def main(render):
+@click.option("--render/--norender", default=False, is_flag=True)
+@click.option("--db-path", default="drifter_data.db")
+@click.option("--n-steps", default=1000)
+@click.option("--do-steering/--no-do-steering", default=True, is_flag=True)
+@click.option("--do-throttle/--no-do-throttle", default=True, is_flag=True)
+def main(render, db_path, n_steps, do_steering):
 	db_path = "drifter_data.db"
 	batch_size = 100  # Batch transitions before writing to DB
 
@@ -209,7 +214,9 @@ def main(render):
 	conn = init_database(db_path)
 
 	env = DrifterEnv(gui=render)
-	expl_policy = SimpleExplorationPolicy()
+	expl_policy = SimpleExplorationPolicy(
+		do_steering=do_steering, do_throttle=do_throttle
+	)
 
 	s, _ = env.reset()
 	batch = []
