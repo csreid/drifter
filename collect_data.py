@@ -222,7 +222,7 @@ def main(render, db_path, n_steps, do_steering, do_throttle):
 	batch = []
 	episode = str(uuid4())
 
-	for i in tqdm(range(1000)):
+	for i in tqdm(range(n_steps)):
 		a = expl_policy.get_action(s)
 
 		sp, r, done, trunc, _ = env.step(a)
