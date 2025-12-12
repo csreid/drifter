@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
+from datetime import datetime
 
 from inverse_dynamics import create_inverse_dynamics_dataloader
 from env_vision_model import EnvModel
@@ -220,7 +221,8 @@ def main(args):
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	# Setup tensorboard
-	writer = SummaryWriter('outputs/runs')
+	log_dir = f"outputs/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+	writer = SummaryWriter(log_dir)
 
 	# Create dataloaders
 	print("Creating dataloaders...")
