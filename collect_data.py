@@ -206,7 +206,7 @@ def add_batch_to_database(conn, batch, episode):
 @click.option("--n-steps", default=1000)
 @click.option("--do-steering/--no-do-steering", default=True, is_flag=True)
 @click.option("--do-throttle/--no-do-throttle", default=True, is_flag=True)
-def main(render, db_path, n_steps, do_steering):
+def main(render, db_path, n_steps, do_steering, do_throttle):
 	db_path = "drifter_data.db"
 	batch_size = 100  # Batch transitions before writing to DB
 
