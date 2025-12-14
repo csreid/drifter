@@ -309,7 +309,7 @@ def main(
 
 	# Create dataloaders
 	print("Creating dataloaders...")
-	train_loader, val_dataloader = create_inverse_dynamics_dataloaders(
+	train_loader, val_loader = create_inverse_dynamics_dataloaders(
 		db_path=train_db,
 		sequence_length=sequence_length,
 		stride=stride,
