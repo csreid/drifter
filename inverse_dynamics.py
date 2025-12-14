@@ -2,7 +2,7 @@ import sqlite3
 import numpy as np
 import gzip
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from typing import Tuple, Optional
 import io
 
@@ -188,31 +188,35 @@ class InverseDynamicsDataset(Dataset):
 		return images, actions
 
 
-def create_inverse_dynamics_dataloader(
+def create_inverse_dynamics_dataloaders(
 	db_path: str,
 	sequence_length: int = 4,
 	stride: int = 1,
 	batch_size: int = 32,
+	val_fraction: float = 0.2,
 	shuffle: bool = True,
 	num_workers: int = 4,
 	cache_images: bool = False,
+	seed: int = 42,
 	**dataloader_kwargs,
-) -> DataLoader:
+) -> Tuple[DataLoader, DataLoader]:
 	"""
-	Create a DataLoader for inverse dynamics learning.
+	Create training and validation DataLoaders for inverse dynamics learning.
 
 	Args:
 	    db_path: Path to the SQLite database
 	    sequence_length: Number of consecutive frames per sequence
 	    stride: Step size when creating sequences
 	    batch_size: Batch size for the dataloader
-	    shuffle: Whether to shuffle the data
+	    val_fraction: Fraction of data to use for validation (0.0 to 1.0)
+	    shuffle: Whether to shuffle the training data
 	    num_workers: Number of worker processes for data loading
 	    cache_images: Whether to cache decompressed images (uses more memory)
+	    seed: Random seed for reproducible train/val split
 	    **dataloader_kwargs: Additional arguments to pass to DataLoader
 
 	Returns:
-	    DataLoader instance
+	    Tuple of (train_dataloader, val_dataloader)
 	"""
 	dataset = InverseDynamicsDataset(
 		db_path=db_path,
@@ -221,35 +225,65 @@ def create_inverse_dynamics_dataloader(
 		cache_images=cache_images,
 	)
 
-	dataloader = DataLoader(
-		dataset,
+	# Create train/val split
+	dataset_size = len(dataset)
+	val_size = int(dataset_size * val_fraction)
+	train_size = dataset_size - val_size
+
+	# Shuffle indices for random split
+	indices = np.arange(dataset_size)
+	rng = np.random.RandomState(seed)
+	rng.shuffle(indices)
+
+	train_indices = indices[:train_size]
+	val_indices = indices[train_size:]
+
+	# Create subset datasets
+	train_dataset = Subset(dataset, train_indices)
+	val_dataset = Subset(dataset, val_indices)
+
+	print(f"Dataset split: {train_size} training, {val_size} validation")
+
+	# Create dataloaders
+	train_dataloader = DataLoader(
+		train_dataset,
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
 		**dataloader_kwargs,
 	)
 
-	return dataloader
+	val_dataloader = DataLoader(
+		val_dataset,
+		batch_size=batch_size,
+		shuffle=False,  # Don't shuffle validation data
+		num_workers=num_workers,
+		**dataloader_kwargs,
+	)
+
+	return train_dataloader, val_dataloader
 
 
 if __name__ == "__main__":
 	# Example usage
 	db_path = "path/to/your/database.db"
 
-	# Create dataloader
-	dataloader = create_inverse_dynamics_dataloader(
+	# Create dataloaders with train/val split
+	train_dataloader, val_dataloader = create_inverse_dynamics_dataloaders(
 		db_path=db_path,
 		sequence_length=4,
 		stride=1,
 		batch_size=16,
+		val_fraction=0.2,
 		shuffle=True,
 		num_workers=2,
 	)
 
-	# Iterate through a few batches
-	print(f"Total batches: {len(dataloader)}")
+	# Iterate through a few training batches
+	print(f"\nTraining batches: {len(train_dataloader)}")
+	print(f"Validation batches: {len(val_dataloader)}")
 
-	for batch_idx, (images, actions) in enumerate(dataloader):
+	for batch_idx, (images, actions) in enumerate(train_dataloader):
 		print(f"\nBatch {batch_idx}:")
 		print(f"  Images shape: {images.shape}")  # (B, T, C, H, W)
 		print(f"  Actions shape: {actions.shape}")  # (B, T, 2)

@@ -2,13 +2,13 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
-import argparse
+import click
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 from datetime import datetime
 
-from inverse_dynamics import create_inverse_dynamics_dataloader
+from inverse_dynamics import create_inverse_dynamics_dataloaders
 from env_vision_model import EnvModel
 import matplotlib.pyplot as plt
 
@@ -59,7 +59,6 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 				"avg_loss": f"{total_loss / total_samples:.4f}",
 			}
 		)
-
 
 	avg_loss = total_loss / total_samples
 	return avg_loss
@@ -207,17 +206,100 @@ def plot_predictions_to_tensorboard(
 	model.train()
 
 
-def main(args):
+@click.command()
+# Data arguments
+@click.option(
+	"--train_db", type=str, required=True, help="Path to training database"
+)
+@click.option(
+	"--val_db",
+	type=str,
+	default=None,
+	help="Path to validation database (optional)",
+)
+@click.option(
+	"--sequence_length",
+	type=int,
+	default=200,
+	help="Length of sequences to process",
+)
+@click.option(
+	"--stride", type=int, default=100, help="Stride for sequence creation"
+)
+@click.option(
+	"--cache_images",
+	is_flag=True,
+	help="Cache decompressed images in memory",
+)
+# Model arguments
+@click.option(
+	"--hidden_size", type=int, default=512, help="Hidden size for the model"
+)
+# Training arguments
+@click.option(
+	"--batch_size", type=int, default=8, help="Batch size for training"
+)
+@click.option("--lr", type=float, default=0.001, help="Learning rate")
+@click.option(
+	"--epochs", type=int, default=50, help="Number of epochs to train"
+)
+@click.option(
+	"--num_workers",
+	type=int,
+	default=4,
+	help="Number of dataloader workers",
+)
+# Checkpointing arguments
+@click.option(
+	"--output_dir",
+	type=str,
+	default="./outputs",
+	help="Directory to save outputs",
+)
+@click.option(
+	"--save_every",
+	type=int,
+	default=10,
+	help="Save checkpoint every N epochs",
+)
+@click.option(
+	"--val_every", type=int, default=1, help="Validate every N epochs"
+)
+@click.option(
+	"--description", type=str, default=None, help="Descriptor that is sent to the logging stuff to help identify a run"
+)
+@click.option(
+	"--val-frac", type=float, default=0., help="Fraction of the dataset that should be held out for validation"
+)
+# Other arguments
+@click.option("--seed", type=int, default=42, help="Random seed")
+def main(
+	train_db,
+	val_db,
+	sequence_length,
+	stride,
+	cache_images,
+	hidden_size,
+	batch_size,
+	lr,
+	epochs,
+	num_workers,
+	output_dir,
+	save_every,
+	val_every,
+	val_frac,
+	seed,
+):
 	# Set random seeds for reproducibility
-	torch.manual_seed(args.seed)
-	np.random.seed(args.seed)
+	torch.manual_seed(seed)
+	np.random.seed(seed)
 
 	# Setup device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f"Using device: {device}")
 
 	# Create output directory
-	output_dir = Path(args.output_dir)
+	output_dir = Path(output_dir)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	# Setup tensorboard
@@ -226,35 +308,24 @@ def main(args):
 
 	# Create dataloaders
 	print("Creating dataloaders...")
-	train_loader = create_inverse_dynamics_dataloader(
-		db_path=args.train_db,
-		sequence_length=args.sequence_length,
-		stride=args.stride,
-		batch_size=args.batch_size,
+	train_loader, val_dataloader = create_inverse_dynamics_dataloaders(
+		db_path=train_db,
+		sequence_length=sequence_length,
+		stride=stride,
+		batch_size=batch_size,
 		shuffle=True,
-		num_workers=args.num_workers,
-		cache_images=args.cache_images,
+		num_workers=num_workers,
+		cache_images=cache_images,
+		val_fraction=val_frac
 	)
-
-	val_loader = None
-	if args.val_db:
-		val_loader = create_inverse_dynamics_dataloader(
-			db_path=args.val_db,
-			sequence_length=args.sequence_length,
-			stride=args.stride,
-			batch_size=args.batch_size,
-			shuffle=False,
-			num_workers=args.num_workers,
-			cache_images=args.cache_images,
-		)
 
 	print(f"Training batches: {len(train_loader)}")
 	if val_loader:
 		print(f"Validation batches: {len(val_loader)}")
 
 	# Create model
-	print(f"Creating model with hidden_size={args.hidden_size}")
-	model = EnvModel(hidden_size=args.hidden_size)
+	print(f"Creating model with hidden_size={hidden_size}")
+	model = EnvModel(hidden_size=hidden_size)
 	model = model.to(device)
 
 	# Print model size
@@ -262,7 +333,7 @@ def main(args):
 	print(f"Model has {num_params:,} trainable parameters")
 
 	# Create optimizer and loss
-	optimizer = Adam(model.parameters(), lr=args.lr)
+	optimizer = Adam(model.parameters(), lr=lr)
 	criterion = nn.MSELoss()
 
 	# Training loop
@@ -271,13 +342,15 @@ def main(args):
 	sample_seq = next(iter(train_loader))
 	writer.add_video("sample", sample_seq[0], 0)
 
-	for epoch in range(1, args.epochs + 1):
+	for epoch in range(1, epochs + 1):
 		print(f"\n{'=' * 50}")
-		print(f"Epoch {epoch}/{args.epochs}")
+		print(f"Epoch {epoch}/{epochs}")
 		print(f"{'=' * 50}")
 
 		# Train
-		plot_predictions_to_tensorboard(model, sample_seq, writer, epoch, device)
+		plot_predictions_to_tensorboard(
+			model, sample_seq, writer, epoch, device
+		)
 		train_loss = train_epoch(
 			model, train_loader, optimizer, criterion, device, epoch
 		)
@@ -285,7 +358,7 @@ def main(args):
 		writer.add_scalar("Loss/train", train_loss, epoch)
 
 		# Validate
-		if val_loader and epoch % args.val_every == 0:
+		if val_loader and epoch % val_every == 0:
 			val_metrics = validate(model, val_loader, criterion, device)
 			print(f"Val Loss: {val_metrics['loss']:.4f}")
 			print(f"Val Steering MAE: {val_metrics['steering_mae']:.4f}")
@@ -315,7 +388,7 @@ def main(args):
 				print(f"Saved best model to {checkpoint_path}")
 
 		# Save checkpoint
-		if epoch % args.save_every == 0:
+		if epoch % save_every == 0:
 			checkpoint_path = output_dir / f"checkpoint_epoch_{epoch}.pt"
 			torch.save(
 				{
@@ -332,7 +405,7 @@ def main(args):
 	final_path = output_dir / "final_model.pt"
 	torch.save(
 		{
-			"epoch": args.epochs,
+			"epoch": epochs,
 			"model_state_dict": model.state_dict(),
 			"optimizer_state_dict": optimizer.state_dict(),
 		},
@@ -344,73 +417,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-	parser = argparse.ArgumentParser(description="Train inverse dynamics model")
-
-	# Data arguments
-	parser.add_argument(
-		"--train_db", type=str, required=True, help="Path to training database"
-	)
-	parser.add_argument(
-		"--val_db",
-		type=str,
-		default=None,
-		help="Path to validation database (optional)",
-	)
-	parser.add_argument(
-		"--sequence_length",
-		type=int,
-		default=200,
-		help="Length of sequences to process",
-	)
-	parser.add_argument(
-		"--stride", type=int, default=100, help="Stride for sequence creation"
-	)
-	parser.add_argument(
-		"--cache_images",
-		action="store_true",
-		help="Cache decompressed images in memory",
-	)
-
-	# Model arguments
-	parser.add_argument(
-		"--hidden_size", type=int, default=512, help="Hidden size for the model"
-	)
-
-	# Training arguments
-	parser.add_argument(
-		"--batch_size", type=int, default=8, help="Batch size for training"
-	)
-	parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
-	parser.add_argument(
-		"--epochs", type=int, default=50, help="Number of epochs to train"
-	)
-	parser.add_argument(
-		"--num_workers",
-		type=int,
-		default=4,
-		help="Number of dataloader workers",
-	)
-
-	# Checkpointing arguments
-	parser.add_argument(
-		"--output_dir",
-		type=str,
-		default="./outputs",
-		help="Directory to save outputs",
-	)
-	parser.add_argument(
-		"--save_every",
-		type=int,
-		default=10,
-		help="Save checkpoint every N epochs",
-	)
-	parser.add_argument(
-		"--val_every", type=int, default=1, help="Validate every N epochs"
-	)
-
-	# Other arguments
-	parser.add_argument("--seed", type=int, default=42, help="Random seed")
-
-	args = parser.parse_args()
-
-	main(args)
+	main()
