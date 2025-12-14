@@ -304,7 +304,7 @@ def main(
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	# Setup tensorboard
-	log_dir = f"outputs/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+	log_dir = f"outputs/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}_{description}"
 	writer = SummaryWriter(log_dir)
 
 	# Create dataloaders
