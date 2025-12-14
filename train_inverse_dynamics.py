@@ -289,6 +289,7 @@ def main(
 	val_every,
 	val_frac,
 	seed,
+	description
 ):
 	# Set random seeds for reproducibility
 	torch.manual_seed(seed)
