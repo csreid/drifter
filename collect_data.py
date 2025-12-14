@@ -206,7 +206,12 @@ def add_batch_to_database(conn, batch, episode):
 @click.option("--n-steps", default=1000)
 @click.option("--do-steering/--no-do-steering", default=True, is_flag=True)
 @click.option("--do-throttle/--no-do-throttle", default=True, is_flag=True)
-def main(render, db_path, n_steps, do_steering, do_throttle):
+@click.option(
+	"--hold-for",
+	default=100,
+	help="Number of steps a chosen action should be held before changing",
+)
+def main(render, db_path, n_steps, do_steering, do_throttle, hold_for):
 	batch_size = 100  # Batch transitions before writing to DB
 
 	# Initialize database
@@ -214,7 +219,9 @@ def main(render, db_path, n_steps, do_steering, do_throttle):
 
 	env = DrifterEnv(gui=render)
 	expl_policy = SimpleExplorationPolicy(
-		do_steering=do_steering, do_throttle=do_throttle
+		do_steering=do_steering,
+		do_throttle=do_throttle,
+		duration_steps=hold_for,
 	)
 
 	s, _ = env.reset()

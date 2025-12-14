@@ -303,7 +303,12 @@ class SimpleExplorationPolicy:
 	steps, then change
 	"""
 
-	def __init__(self, duration_steps=100, do_throttle=False, do_steering=False):
+	def __init__(
+		self,
+		duration_steps=100,
+		do_throttle=False,
+		do_steering=False,
+	):
 		self._current_step = 0
 		self._current_input = None
 		self._duration_steps = duration_steps
