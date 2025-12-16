@@ -9,7 +9,6 @@ from torch.nn import (
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from torchvision.models import resnet18
-from torchvision import transforms
 
 
 def _get_output_shape(model, input_shape):
@@ -86,7 +85,7 @@ class EnvModel(Module):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
-		out = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
+		out = F.interpolate(out, size=(224, 224), mode='bilinear', align_corners=False)
 		out = (out - self.mean) / self.std
 		out = self._viz_pipeline(out)
 		out = self._h1(out)
