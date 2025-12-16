@@ -54,15 +54,8 @@ class EnvModel(Module):
 		# Flatten(),
 		# )
 
-		self._preprocessor = transforms.Compose(
-			[
-				transforms.Resize(224),
-				transforms.ToTensor(),
-				transforms.Normalize(
-					mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-				),
-			]
-		)
+		self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+		self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
 
 		backbone = resnet18(pretrained=True)
 		self._viz_pipeline = torch.nn.Sequential(
@@ -93,7 +86,8 @@ class EnvModel(Module):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
-		out = self._preprocessor(out)
+		out = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
+		out = (out - self.mean) / self.std
 		out = self._viz_pipeline(out)
 		out = self._h1(out)
 		out = F.leaky_relu(out)
