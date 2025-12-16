@@ -10,12 +10,13 @@ from torch.nn import (
 	Flatten,
 	LSTM,
 	ModuleList,
-	ModuleDict
+	ModuleDict,
 )
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from functools import reduce
 from torchvision.models import resnet18
+
 
 def _get_output_shape(model, input_shape):
 	"""
@@ -46,23 +47,32 @@ def _get_output_shape(model, input_shape):
 class EnvModel(Module):
 	def __init__(self, hidden_size=512, pretrained_vision=False):
 		super().__init__()
-#		self._viz_pipeline = Sequential(
-#			Conv2d(3, 16, kernel_size=4, stride=2),
-#			LeakyReLU(),
-#			Conv2d(16, 64, kernel_size=3, stride=2),
-#			LeakyReLU(),
-#			Conv2d(64, 128, kernel_size=3, stride=2),
-#			LeakyReLU(),
-#			Conv2d(128, 512, kernel_size=3, stride=2),
-#			AdaptiveAvgPool2d((1, 1)),
-#			LeakyReLU(),
-#			Flatten(),
-#		)
+		# self._viz_pipeline = Sequential(
+		# Conv2d(3, 16, kernel_size=4, stride=2),
+		# LeakyReLU(),
+		# Conv2d(16, 64, kernel_size=3, stride=2),
+		# LeakyReLU(),
+		# Conv2d(64, 128, kernel_size=3, stride=2),
+		# LeakyReLU(),
+		# Conv2d(128, 512, kernel_size=3, stride=2),
+		# AdaptiveAvgPool2d((1, 1)),
+		# LeakyReLU(),
+		# Flatten(),
+		# )
+
+		preprocessor = transforms.Compose(
+			[
+				transforms.Resize(224),
+				transforms.ToTensor(),
+				transforms.Normalize(
+					mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+				),
+			]
+		)
 
 		backbone = resnet18(pretrained=True)
 		self._viz_pipeline = torch.nn.Sequential(
-			*list(backbone.children())[:-1],
-			Flatten()
+			*list(backbone.children())[:-1], Flatten()
 		)
 
 		viz_out_shape = 512
@@ -71,15 +81,19 @@ class EnvModel(Module):
 
 		self._rnn = LSTM(hidden_size, hidden_size, batch_first=True)
 
-		self._dynamics_output_heads = ModuleDict({
-			'velocity': Linear(hidden_size, 3),
-			'position': Linear(hidden_size, 3),
-			'orientation': Linear(hidden_size, 4),
-			'goal_position': Linear(hidden_size, 3),
-			'local_goal_position': Linear(hidden_size, 3)
-		})
+		self._dynamics_output_heads = ModuleDict(
+			{
+				"velocity": Linear(hidden_size, 3),
+				"position": Linear(hidden_size, 3),
+				"orientation": Linear(hidden_size, 4),
+				"goal_position": Linear(hidden_size, 3),
+				"local_goal_position": Linear(hidden_size, 3),
+			}
+		)
 
-		self._id_output_head = Linear(hidden_size, 2) # for 2-d action; steering and throttle/brake/reverse
+		self._id_output_head = Linear(
+			hidden_size, 2
+		)  # for 2-d action; steering and throttle/brake/reverse
 
 	def _get_hidden(self, imgs, seqlens):
 		batchsize, seqlen, C, H, W = imgs.shape
@@ -111,7 +125,5 @@ class EnvModel(Module):
 		out = self._get_hidden(imgs, seqlens)
 
 		return {
-			key: val(out)
-			for key, val
-			in self._dynamics_output_heads.items()
+			key: val(out) for key, val in self._dynamics_output_heads.items()
 		}
