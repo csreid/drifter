@@ -2,20 +2,14 @@ import torch
 from torch.nn import (
 	Linear,
 	Module,
-	Sequential,
-	LeakyReLU,
-	Conv2d,
-	MaxPool2d,
-	AdaptiveAvgPool2d,
 	Flatten,
 	LSTM,
-	ModuleList,
 	ModuleDict,
 )
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from functools import reduce
 from torchvision.models import resnet18
+from torchvision import transforms
 
 
 def _get_output_shape(model, input_shape):
@@ -60,7 +54,7 @@ class EnvModel(Module):
 		# Flatten(),
 		# )
 
-		preprocessor = transforms.Compose(
+		self._preprocessor = transforms.Compose(
 			[
 				transforms.Resize(224),
 				transforms.ToTensor(),
@@ -75,7 +69,7 @@ class EnvModel(Module):
 			*list(backbone.children())[:-1], Flatten()
 		)
 
-		viz_out_shape = 512
+		viz_out_shape = 512 # Given bc resnet18
 
 		self._h1 = Linear(viz_out_shape, hidden_size)
 
@@ -99,6 +93,7 @@ class EnvModel(Module):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
+		out = self._preprocessor(out)
 		out = self._viz_pipeline(out)
 		out = self._h1(out)
 		out = F.leaky_relu(out)
