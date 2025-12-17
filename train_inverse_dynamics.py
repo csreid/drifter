@@ -1,17 +1,18 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.utils.tensorboard import SummaryWriter
 import click
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
-from datetime import datetime
 
 from inverse_dynamics import create_inverse_dynamics_dataloaders
 from env_vision_model import EnvModel
 import matplotlib.pyplot as plt
 
+import mlflow
+
+mlflow.enable_system_metrics_logging()
 
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 	"""Train for one epoch."""
@@ -111,7 +112,7 @@ def validate(model, dataloader, criterion, device):
 	throttle_errors = np.concatenate(throttle_errors)
 
 	metrics = {
-		"loss": avg_loss,
+		"validation_loss": avg_loss,
 		"steering_mae": np.mean(steering_errors),
 		"throttle_mae": np.mean(throttle_errors),
 	}
@@ -200,7 +201,6 @@ def plot_predictions_to_tensorboard(
 		plt.tight_layout()
 
 		# Log to tensorboard
-		writer.add_figure("predictions/action_comparison", fig, global_step)
 		plt.close(fig)
 
 	model.train()
@@ -303,10 +303,6 @@ def main(
 	output_dir = Path(output_dir)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
-	# Setup tensorboard
-	log_dir = f"outputs/runs/{datetime.now().strftime('%Y%m%d-%H%M%S')}_{description}"
-	writer = SummaryWriter(log_dir)
-
 	# Create dataloaders
 	print("Creating dataloaders...")
 	train_loader, val_loader = create_inverse_dynamics_dataloaders(
@@ -340,81 +336,52 @@ def main(
 	# Training loop
 	best_val_loss = float("inf")
 
-	sample_seq = next(iter(train_loader))
-	writer.add_video("sample", sample_seq[0], 0)
+	#sample_seq = next(iter(train_loader))
+	#writer.add_video("sample", sample_seq[0], 0)
 
-	for epoch in range(1, epochs + 1):
-		print(f"\n{'=' * 50}")
-		print(f"Epoch {epoch}/{epochs}")
-		print(f"{'=' * 50}")
+	params = {
+		"epochs": epochs,
+		"dataset_size": len(train_loader),
+		"batch_size": batch_size,
+		"sequence_length": sequence_length,
+		"hidden_size": hidden_size,
+	}
 
-		# Train
-		plot_predictions_to_tensorboard(
-			model, sample_seq, writer, epoch, device
-		)
-		train_loss = train_epoch(
-			model, train_loader, optimizer, criterion, device, epoch
-		)
-		print(f"Train Loss: {train_loss:.4f}")
-		writer.add_scalar("Loss/train", train_loss, epoch)
+	with mlflow.start_run():
+		mlflow.log_params(params)
 
-		# Validate
-		if val_loader and epoch % val_every == 0:
-			val_metrics = validate(model, val_loader, criterion, device)
-			print(f"Val Loss: {val_metrics['loss']:.4f}")
-			print(f"Val Steering MAE: {val_metrics['steering_mae']:.4f}")
-			print(f"Val Throttle MAE: {val_metrics['throttle_mae']:.4f}")
-
-			writer.add_scalar("Loss/val", val_metrics["loss"], epoch)
-			writer.add_scalar(
-				"MAE/steering", val_metrics["steering_mae"], epoch
-			)
-			writer.add_scalar(
-				"MAE/throttle", val_metrics["throttle_mae"], epoch
+		for epoch in range(epochs):
+			# Train
+			train_loss = train_epoch(
+				model, train_loader, optimizer, criterion, device, epoch
 			)
 
-			# Save best model
-			if val_metrics["loss"] < best_val_loss:
-				best_val_loss = val_metrics["loss"]
-				checkpoint_path = output_dir / "best_model.pt"
-				torch.save(
-					{
-						"epoch": epoch,
-						"model_state_dict": model.state_dict(),
-						"optimizer_state_dict": optimizer.state_dict(),
-						"val_loss": best_val_loss,
-					},
-					checkpoint_path,
-				)
-				print(f"Saved best model to {checkpoint_path}")
-
-		# Save checkpoint
-		if epoch % save_every == 0:
-			checkpoint_path = output_dir / f"checkpoint_epoch_{epoch}.pt"
-			torch.save(
+			mlflow.log_metrics(
 				{
-					"epoch": epoch,
-					"model_state_dict": model.state_dict(),
-					"optimizer_state_dict": optimizer.state_dict(),
 					"train_loss": train_loss,
 				},
-				checkpoint_path,
+				step=epoch
 			)
-			print(f"Saved checkpoint to {checkpoint_path}")
 
-	# Save final model
-	final_path = output_dir / "final_model.pt"
-	torch.save(
-		{
-			"epoch": epochs,
-			"model_state_dict": model.state_dict(),
-			"optimizer_state_dict": optimizer.state_dict(),
-		},
-		final_path,
-	)
-	print(f"\nTraining complete! Final model saved to {final_path}")
+			# Validate
+			if val_loader and epoch % val_every == 0:
+				val_metrics = validate(model, val_loader, criterion, device)
+				print(f"Val Loss: {val_metrics['loss']:.4f}")
+				print(f"Val Steering MAE: {val_metrics['steering_mae']:.4f}")
+				print(f"Val Throttle MAE: {val_metrics['throttle_mae']:.4f}")
 
-	writer.close()
+				mlflow.log_metrics(val_metrics, step=epoch)
+
+				# Save best model
+				if val_metrics["loss"] < best_val_loss:
+					best_val_loss = val_metrics["loss"]
+					mlflow.pytorch.log_model(model, name='best_id_model')
+
+			# Save checkpoint
+			if epoch % save_every == 0:
+				mlflow.pytorch.log_model(model, name='id_model_checkpoint', step=epoch)
+
+	print("\nTraining complete!")
 
 
 if __name__ == "__main__":
