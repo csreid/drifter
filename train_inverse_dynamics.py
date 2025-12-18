@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import mlflow
 
 mlflow.enable_system_metrics_logging()
+mlflow.set_tracking_uri("http://localhost:6006")
 
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 	"""Train for one epoch."""
