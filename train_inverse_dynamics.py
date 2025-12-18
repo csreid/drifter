@@ -366,15 +366,15 @@ def main(
 			# Validate
 			if val_loader and epoch % val_every == 0:
 				val_metrics = validate(model, val_loader, criterion, device)
-				print(f"Val Loss: {val_metrics['loss']:.4f}")
+				print(f"Val Loss: {val_metrics['validation_loss']:.4f}")
 				print(f"Val Steering MAE: {val_metrics['steering_mae']:.4f}")
 				print(f"Val Throttle MAE: {val_metrics['throttle_mae']:.4f}")
 
 				mlflow.log_metrics(val_metrics, step=epoch)
 
 				# Save best model
-				if val_metrics["loss"] < best_val_loss:
-					best_val_loss = val_metrics["loss"]
+				if val_metrics["validation_loss"] < best_val_loss:
+					best_val_loss = val_metrics["validation_loss"]
 					mlflow.pytorch.log_model(model, name='best_id_model')
 
 			# Save checkpoint
