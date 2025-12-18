@@ -34,7 +34,7 @@ sample_dataloader = create_dataloader(
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-model = mlflow.pytorch.load_model(f"runs:/{START_FROM_RUN_ID}/best_id_model")
+model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
 
 criterion = MSELoss()
 opt = Adam(model.parameters())
