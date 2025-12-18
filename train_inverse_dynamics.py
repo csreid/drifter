@@ -369,7 +369,17 @@ def main(
 				# Save best model
 				if val_metrics["validation_loss"] < best_val_loss:
 					best_val_loss = val_metrics["validation_loss"]
-					mlflow.pytorch.log_model(model, name='best_id_model')
+					model_info = mlflow.pytorch.log_model(
+						pytorch_model=model,
+						name='best_id_model_epoch{epoch}',
+						step=epoch,
+					)
+					mlflow.log_metric(
+						key="validation_loss",
+						value=val_metrics['validation_loss'],
+						step=epoch,
+						model_id=model_info.model_id
+					)
 
 			# Save checkpoint
 			if epoch % save_every == 0:
