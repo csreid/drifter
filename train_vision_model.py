@@ -9,6 +9,11 @@ from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 import numpy as np
+import mlflow
+
+mlflow.set_tracking_uri("http://localhost:6006")
+
+START_FROM_RUN_ID='a030152263de49d29ac4e9f67a8e3231'
 
 # Create the dataloader
 dataloader = create_dataloader(
@@ -29,11 +34,12 @@ sample_dataloader = create_dataloader(
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-model = EnvModel(hidden_size=1024).to(dev)
+model = mlflow.pytorch.load_model(f"runs:/{START_FROM_RUN_ID}/best_id_model")
+
 criterion = MSELoss()
 opt = Adam(model.parameters())
 
-writer = SummaryWriter()
+#writer = SummaryWriter()
 
 sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
 
@@ -72,16 +78,15 @@ def do_logging():
 
 	ax.legend()
 
-	writer.add_figure(
-		"Estimated vs True positions",
+	mlflow.log_figure(
 		fig,
-		epoch * len(dataloader) + idx,
+		"trajectory_step{epoch * len(dataloader) + idx}.png"
 	)
 	plt.close(fig)
 
-	writer.add_video(
-		"Sampled Trajectory", sample_imgs, epoch * len(dataloader) + idx
-	)
+#	writer.add_video(
+#		"Sampled Trajectory", sample_imgs, epoch * len(dataloader) + idx
+#	)
 
 
 for epoch in range(20):
@@ -104,12 +109,11 @@ for epoch in range(20):
 			per_output_loss[key] = this_loss
 			loss += this_loss
 
-		writer.add_scalars(
-			"loss_components",
+		mlflow.log_metrics(
 			per_output_loss,
-			epoch * len(dataloader) + idx,
+			step=totalidx
 		)
-		writer.add_scalar("Loss", loss, totalidx)
+		mlflow.log_metric("loss", loss, step=totalidx)
 
 		opt.zero_grad()
 		loss.backward()

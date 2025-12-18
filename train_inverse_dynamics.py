@@ -213,12 +213,6 @@ def plot_predictions_to_tensorboard(
 	"--train_db", type=str, required=True, help="Path to training database"
 )
 @click.option(
-	"--val_db",
-	type=str,
-	default=None,
-	help="Path to validation database (optional)",
-)
-@click.option(
 	"--sequence_length",
 	type=int,
 	default=200,
@@ -276,7 +270,6 @@ def plot_predictions_to_tensorboard(
 @click.option("--seed", type=int, default=42, help="Random seed")
 def main(
 	train_db,
-	val_db,
 	sequence_length,
 	stride,
 	cache_images,
