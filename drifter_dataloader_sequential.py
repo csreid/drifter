@@ -54,7 +54,6 @@ class DrifterSequenceDataset(Dataset):
 		# Connect to database and build episode index
 		self.conn = sqlite3.connect(db_path, check_same_thread=False)
 		self._build_episode_index()
-		self._img_cache = {}
 
 	def _build_episode_index(self):
 		"""
@@ -203,11 +202,7 @@ class DrifterSequenceDataset(Dataset):
 			shape = (row[17], row[18], row[19])
 			dtype = row[20]
 
-			if rowid not in self._img_cache:
-				decompressed = gzip.decompress(compressed_img)
-				self._img_cache[rowid] = decompressed
-			else:
-				decompressed = self._img_cache[rowid]
+			decompressed = gzip.decompress(compressed_img)
 
 			image = (
 				np.frombuffer(decompressed, dtype=dtype).reshape(shape).copy()
