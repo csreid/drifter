@@ -1,5 +1,6 @@
 from tqdm import tqdm
 import torch
+import click
 from env_vision_model import EnvModel
 from drifter_dataloader_sequential import (
 	create_sequence_dataloader as create_dataloader,
@@ -14,14 +15,6 @@ import mlflow
 mlflow.set_tracking_uri("http://localhost:6006")
 
 # Create the dataloader
-dataloader = create_dataloader(
-	db_path="drifter_data.db",
-	batch_size=4,
-	shuffle=True,
-	num_workers=4,
-	min_seq_len=40,
-	max_seq_len=75,
-)
 sample_dataloader = create_dataloader(
 	db_path="drifter_data.db",
 	batch_size=1,
@@ -33,9 +26,7 @@ sample_dataloader = create_dataloader(
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 #model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
-model_state_dict = torch.load('model.pth')
-model = EnvModel(hidden_size=512)
-model.load_state_dict(model_state_dict)
+model = torch.load('model.pth')
 
 criterion = MSELoss()
 opt = Adam(model.parameters())
@@ -90,32 +81,54 @@ def do_logging():
 #	)
 
 
-for epoch in range(20):
-	for idx, (images, states, seq_lens) in tqdm(
-		enumerate(dataloader), total=len(dataloader)
-	):
-		totalidx = epoch * len(dataloader) + idx
+@click.command()
+@click.option(
+	"--train_db", type=str, required=True, help="Path to training database"
+)
+@click.option(
+	"--batch_size", type=int, default=8, help="Batch size for training"
+)
+@click.option(
+	"--epochs", type=int, default=50, help="Number of epochs to train"
+)
+def main(train_db, epochs, batch_size):
+	dataloader = create_dataloader(
+		db_path=train_db,
+		batch_size=batch_size,
+		shuffle=True,
+		num_workers=4,
+		min_seq_len=40,
+		max_seq_len=75,
+	)
+	for epoch in range(epochs):
+		for idx, (images, states, seq_lens) in tqdm(
+			enumerate(dataloader), total=len(dataloader)
+		):
+			totalidx = epoch * len(dataloader) + idx
 
-		if (totalidx % 100) == 0:
-			with torch.no_grad():
-				do_logging()
+			if (totalidx % 100) == 0:
+				with torch.no_grad():
+					do_logging()
 
-		predictions = model(images.to(dev), seq_lens)
+			predictions = model(images.to(dev), seq_lens)
 
-		loss = 0.0
-		per_output_loss = {}
-		for key, value in predictions.items():
-			this_loss = criterion(value, states[key].to(dev))
+			loss = 0.0
+			per_output_loss = {}
+			for key, value in predictions.items():
+				if key in states:
+					this_loss = criterion(value, states[key].to(dev))
+					per_output_loss[key] = this_loss
+					loss += this_loss
 
-			per_output_loss[key] = this_loss
-			loss += this_loss
+			mlflow.log_metrics(
+				per_output_loss,
+				step=totalidx
+			)
+			mlflow.log_metric("loss", loss, step=totalidx)
 
-		mlflow.log_metrics(
-			per_output_loss,
-			step=totalidx
-		)
-		mlflow.log_metric("loss", loss, step=totalidx)
+			opt.zero_grad()
+			loss.backward()
+			opt.step()
 
-		opt.zero_grad()
-		loss.backward()
-		opt.step()
+if __name__ == '__main__':
+	main()
