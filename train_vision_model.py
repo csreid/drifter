@@ -18,6 +18,7 @@ dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 #model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
 model = torch.load('model.pth', weights_only=False)
+model.train()
 
 criterion = MSELoss()
 opt = Adam(model.parameters())
