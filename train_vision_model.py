@@ -14,15 +14,6 @@ import mlflow
 
 mlflow.set_tracking_uri("http://localhost:6006")
 
-# Create the dataloader
-sample_dataloader = create_dataloader(
-	db_path="drifter_data.db",
-	batch_size=1,
-	shuffle=True,
-	num_workers=4,
-	min_seq_len=40,
-)
-
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 #model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
@@ -32,9 +23,6 @@ criterion = MSELoss()
 opt = Adam(model.parameters())
 
 #writer = SummaryWriter()
-
-sample_imgs, sample_states, sample_seqlens = next(iter(sample_dataloader))
-
 
 def do_logging():
 	sample_est = model(sample_imgs.to(dev), sample_seqlens)
@@ -108,7 +96,7 @@ def main(train_db, epochs, batch_size):
 
 			if (totalidx % 100) == 0:
 				with torch.no_grad():
-					do_logging()
+					#do_logging()
 
 			predictions = model(images.to(dev), seq_lens)
 
