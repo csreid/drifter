@@ -96,7 +96,7 @@ def main(train_db, epochs, batch_size):
 
 			if (totalidx % 100) == 0:
 				with torch.no_grad():
-					#do_logging()
+					do_logging()
 
 			predictions = model(images.to(dev), seq_lens)
 
