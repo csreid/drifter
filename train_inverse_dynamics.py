@@ -383,7 +383,17 @@ def main(
 
 			# Save checkpoint
 			if epoch % save_every == 0:
-				mlflow.pytorch.log_model(model, name='id_model_checkpoint', step=epoch)
+				model_info = mlflow.pytorch.log_model(
+					model,
+					name='id_model_checkpoint',
+					step=epoch
+				)
+				mlflow.log_metric(
+					key="validation_loss",
+					value=val_metrics['validation_loss'],
+					step=epoch,
+					model_id=model_info.model_id
+				)
 
 	print("\nTraining complete!")
 

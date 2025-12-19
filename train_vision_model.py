@@ -13,8 +13,6 @@ import mlflow
 
 mlflow.set_tracking_uri("http://localhost:6006")
 
-START_FROM_RUN_ID='a030152263de49d29ac4e9f67a8e3231'
-
 # Create the dataloader
 dataloader = create_dataloader(
 	db_path="drifter_data.db",
@@ -34,7 +32,10 @@ sample_dataloader = create_dataloader(
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
+#model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
+model_state_dict = torch.load('model.pth')
+model = EnvModel(hidden_size=512)
+model.load_state_dict(model_state_dict)
 
 criterion = MSELoss()
 opt = Adam(model.parameters())
