@@ -28,7 +28,9 @@ class MPPI:
 			hidden_layers=4,
 		)
 		self._env_model.load_state_dict(
-			torch.load("model.pt", weights_only=True, map_location=torch.device('cpu'))
+			torch.load(
+				"model.pt", weights_only=True, map_location=torch.device("cpu")
+			)
 		)
 		self._env_model.eval()
 
@@ -48,7 +50,7 @@ class MPPI:
 
 	def _fit_batch(self, actions, observations, targets):
 		pred_X = BatchedStateDelta.from_tensor(
-			self._env_model(observations['state'], actions)
+			self._env_model(observations["state"], actions)
 		)
 		loss, per_output_loss = self._loss_fn(pred_X, targets)
 
@@ -131,7 +133,7 @@ class MPPI:
 		)
 
 		# Convert to torch tensors
-		obs_tensor = torch.tensor(observation['state'], dtype=torch.float32)
+		obs_tensor = torch.tensor(observation["state"], dtype=torch.float32)
 		actions_tensor = torch.tensor(action_sequences, dtype=torch.float32)
 
 		# Rollout trajectories
@@ -229,8 +231,8 @@ if __name__ == "__main__":
 		sp, r, done, trunc, _ = env.step(a)
 		transition = Transition(
 			action=Action.from_tensor(torch.tensor(a)),
-			state=State.from_tensor(torch.tensor(s['state'])),
-			next_state=State.from_tensor(torch.tensor(sp['state'])),
+			state=State.from_tensor(torch.tensor(s["state"])),
+			next_state=State.from_tensor(torch.tensor(sp["state"])),
 		)
 
 		recent_rollout.append((s, a, sp))
@@ -247,5 +249,5 @@ if __name__ == "__main__":
 			s, _ = env.reset()
 			mppi_controller.reset_trajectory()
 
-	media.write_video('mppi_sim.mp4', frames, fps=10)
+	media.write_video("mppi_sim.mp4", frames, fps=10)
 	print("Done!")

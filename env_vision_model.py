@@ -53,15 +53,19 @@ class EnvModel(Module):
 		# Flatten(),
 		# )
 
-		self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
-		self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
+		self.register_buffer(
+			"mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+		)
+		self.register_buffer(
+			"std", torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+		)
 
 		backbone = resnet18(pretrained=True)
 		self._viz_pipeline = torch.nn.Sequential(
 			*list(backbone.children())[:-1], Flatten()
 		)
 
-		viz_out_shape = 512 # Given bc resnet18
+		viz_out_shape = 512  # Given bc resnet18
 
 		self._h1 = Linear(viz_out_shape, hidden_size)
 
@@ -85,7 +89,9 @@ class EnvModel(Module):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
-		out = F.interpolate(out, size=(224, 224), mode='bilinear', align_corners=False)
+		out = F.interpolate(
+			out, size=(224, 224), mode="bilinear", align_corners=False
+		)
 		out = (out - self.mean) / self.std
 		out = self._viz_pipeline(out)
 		out = self._h1(out)

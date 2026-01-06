@@ -296,7 +296,7 @@ class MPPIMemory:
 		"""
 		# Update previous transition's next_observation
 		if len(self.transitions) > 0:
-			prev_idx = (
+			(
 				(self._idx - 1) % len(self.transitions)
 				if len(self.transitions) == self.max_len
 				else len(self.transitions) - 1
@@ -359,7 +359,7 @@ class MPPIMemory:
 		# Concatenate observations and actions as model input
 		obs_tensor = torch.stack(observations)
 		action_tensor = torch.stack(actions)
-		inputs = torch.cat([obs_tensor, action_tensor], dim=-1)
+		torch.cat([obs_tensor, action_tensor], dim=-1)
 		nexts = torch.stack(next_observations)
 
 		# targets = obs_diff(obs_tensor, nexts)

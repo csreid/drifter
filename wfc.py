@@ -321,7 +321,7 @@ def create_wfc_terrain(
 
 	# Generate terrain
 	generator = WFCTerrainGenerator(width, height)
-	terrain_grid = generator.generate()
+	generator.generate()
 
 	# Convert to heightmap and friction map
 	heightmap, friction_map = generator.to_heightmap()

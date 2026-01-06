@@ -100,9 +100,9 @@ class RCCarSimulation:
 		self._prev_velocities.append(np.array([0, 0, 0]))
 
 	def get_car_dimensions(self):
-		fl = self.links["front_left_wheel"]
-		fr = self.links["front_right_wheel"]
-		rl = self.links["rear_left_wheel"]
+		self.links["front_left_wheel"]
+		self.links["front_right_wheel"]
+		self.links["rear_left_wheel"]
 
 		return (0.25, 0.25)
 
@@ -235,12 +235,6 @@ class RCCarSimulation:
 				"rear_right_suspension",
 			]
 
-		wheel_links = [
-			"front_left_wheel_link",
-			"front_right_wheel_link",
-			"rear_left_wheel_link",
-			"rear_right_wheel_link",
-		]
 
 		front_wheels = ["front_left_wheel", "front_right_wheel"]
 		rear_wheels = ["rear_left_wheel", "rear_right_wheel"]
@@ -458,7 +452,7 @@ class RCCarSimulation:
 			while True:
 				frame_start = time.time()
 				# Get keyboard input
-				keys = p.getKeyboardEvents()
+				p.getKeyboardEvents()
 
 				# Update controls based on input
 				if not self.update_controls():
@@ -501,7 +495,7 @@ class RCCarSimulation:
 
 				frame_end = time.time()
 				frame_compute_time = frame_end - frame_start
-				to_sleep = self.frame_time - frame_compute_time
+				self.frame_time - frame_compute_time
 				# if to_sleep > 0:
 				# time.sleep(to_sleep)
 
@@ -515,7 +509,7 @@ class RCCarSimulation:
 def main():
 	"""Entry point for the RC car simulation"""
 	sim = RCCarSimulation()
-	display = DataDisplay()
+	DataDisplay()
 	sim.run()  # display=display)
 
 

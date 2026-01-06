@@ -7,7 +7,9 @@ import cv2
 
 
 class RCCarSimulation:
-	def __init__(self, model_path="robot.xml", render=True, generated_terrain=False):
+	def __init__(
+		self, model_path="robot.xml", render=True, generated_terrain=False
+	):
 		"""
 		Initialize the RC car simulation using MuJoCo
 

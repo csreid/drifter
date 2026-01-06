@@ -296,6 +296,7 @@ class ExplorationPolicy:
 				f"  {maneuver.value:25s}: {count:4d} started, {completed:4d} completed"
 			)
 
+
 class SimpleExplorationPolicy:
 	"""
 	Literally just move forward or backward
@@ -325,7 +326,7 @@ class SimpleExplorationPolicy:
 		return self._current_input
 
 	def _new_input(self):
-		new_throttle = np.random.uniform(-1, 1) if self._do_throttle else 0.
-		new_steering = np.random.uniform(-1, 1) if self._do_steering else 0.
+		new_throttle = np.random.uniform(-1, 1) if self._do_throttle else 0.0
+		new_steering = np.random.uniform(-1, 1) if self._do_steering else 0.0
 
 		return np.array([new_steering, new_throttle])

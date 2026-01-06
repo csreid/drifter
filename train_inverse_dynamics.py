@@ -15,6 +15,7 @@ import mlflow
 mlflow.enable_system_metrics_logging()
 mlflow.set_tracking_uri("http://localhost:6006")
 
+
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 	"""Train for one epoch."""
 	model.train()
@@ -261,10 +262,16 @@ def plot_predictions_to_tensorboard(
 	"--val_every", type=int, default=1, help="Validate every N epochs"
 )
 @click.option(
-	"--description", type=str, default=None, help="Descriptor that is sent to the logging stuff to help identify a run"
+	"--description",
+	type=str,
+	default=None,
+	help="Descriptor that is sent to the logging stuff to help identify a run",
 )
 @click.option(
-	"--val-frac", type=float, default=0., help="Fraction of the dataset that should be held out for validation"
+	"--val-frac",
+	type=float,
+	default=0.0,
+	help="Fraction of the dataset that should be held out for validation",
 )
 # Other arguments
 @click.option("--seed", type=int, default=42, help="Random seed")
@@ -283,7 +290,7 @@ def main(
 	val_every,
 	val_frac,
 	seed,
-	description
+	description,
 ):
 	# Set random seeds for reproducibility
 	torch.manual_seed(seed)
@@ -307,7 +314,7 @@ def main(
 		shuffle=True,
 		num_workers=num_workers,
 		cache_images=cache_images,
-		val_fraction=val_frac
+		val_fraction=val_frac,
 	)
 
 	print(f"Training batches: {len(train_loader)}")
@@ -330,8 +337,8 @@ def main(
 	# Training loop
 	best_val_loss = float("inf")
 
-	#sample_seq = next(iter(train_loader))
-	#writer.add_video("sample", sample_seq[0], 0)
+	# sample_seq = next(iter(train_loader))
+	# writer.add_video("sample", sample_seq[0], 0)
 
 	params = {
 		"epochs": epochs,
@@ -354,7 +361,7 @@ def main(
 				{
 					"train_loss": train_loss,
 				},
-				step=epoch
+				step=epoch,
 			)
 
 			# Validate
@@ -371,28 +378,26 @@ def main(
 					best_val_loss = val_metrics["validation_loss"]
 					model_info = mlflow.pytorch.log_model(
 						pytorch_model=model,
-						name='best_id_model_epoch{epoch}',
+						name="best_id_model_epoch{epoch}",
 						step=epoch,
 					)
 					mlflow.log_metric(
 						key="validation_loss",
-						value=val_metrics['validation_loss'],
+						value=val_metrics["validation_loss"],
 						step=epoch,
-						model_id=model_info.model_id
+						model_id=model_info.model_id,
 					)
 
 			# Save checkpoint
 			if epoch % save_every == 0:
 				model_info = mlflow.pytorch.log_model(
-					model,
-					name='id_model_checkpoint',
-					step=epoch
+					model, name="id_model_checkpoint", step=epoch
 				)
 				mlflow.log_metric(
 					key="validation_loss",
-					value=val_metrics['validation_loss'],
+					value=val_metrics["validation_loss"],
 					step=epoch,
-					model_id=model_info.model_id
+					model_id=model_info.model_id,
 				)
 
 	print("\nTraining complete!")

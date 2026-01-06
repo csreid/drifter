@@ -7,7 +7,10 @@ import gymnasium as gym
 
 class DrifterEnv(gym.Env):
 	def __init__(
-		self, action_duration=0.1, gui: bool = False, generate_terrain=False,
+		self,
+		action_duration=0.1,
+		gui: bool = False,
+		generate_terrain=False,
 	):
 		self.gui = gui
 
@@ -35,7 +38,6 @@ class DrifterEnv(gym.Env):
 			dtype=np.float32,
 		)
 
-
 		self.observation_space = observation_space
 
 		# self.action_space = spaces.Box(
@@ -44,8 +46,8 @@ class DrifterEnv(gym.Env):
 
 		self.action_space = action_space
 
-		self.sim = (
-			RCCarSimulation(render=self.gui, generated_terrain=generate_terrain)
+		self.sim = RCCarSimulation(
+			render=self.gui, generated_terrain=generate_terrain
 		)
 		self.n_substeps = int(240 * action_duration)
 		self.prev_timestamp = time.time()
@@ -130,14 +132,14 @@ class DrifterEnv(gym.Env):
 		distance_reward = -distance / 10.0
 
 		# 2. Speed reward (encourages moving fast)
-		speed_reward = speed * 0.1
+		speed * 0.1
 
 		# 3. Direction alignment reward
 		# Dot product gives cosine of angle between velocity and goal direction
 		direction_alignment = np.dot(
 			velocity_direction[:2], goal_direction[:2]
 		)  # Only x,y components
-		direction_reward = direction_alignment * speed * 0.3  # Scale by speed
+		direction_alignment * speed * 0.3  # Scale by speed
 
 		# 4. Goal reached bonus
 		goal_bonus = 1000 if (distance < 2.0) else 0
@@ -146,15 +148,13 @@ class DrifterEnv(gym.Env):
 		if not hasattr(self, "previous_distance"):
 			self.previous_distance = distance
 
-		progress = self.previous_distance - distance
-		progress_reward = progress  # Scale factor
+		self.previous_distance - distance
 		self.previous_distance = distance
 
 		# 6. Flip penalty (severe)
 		flip_penalty = -1000 if self.sim.is_flipped() else 0
 
 		# 7. Time penalty (small, encourages faster completion)
-		time_penalty = -0.1
 
 		# Combine all rewards
 		total_reward = (
@@ -203,7 +203,7 @@ class DrifterEnv(gym.Env):
 		if self._realtime:
 			self._realtime_sleep()
 
-		#self.sim.render_camera_image()
+		# self.sim.render_camera_image()
 		return obs, reward, done, truncated, info
 
 	def set_realtime(self, val: bool):

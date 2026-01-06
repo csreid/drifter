@@ -3,7 +3,7 @@ import gzip
 import sqlite3
 import numpy as np
 from drifter_env import DrifterEnv
-from exploration_policy import ExplorationPolicy, SimpleExplorationPolicy
+from exploration_policy import SimpleExplorationPolicy
 from uuid import uuid4
 import click
 

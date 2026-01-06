@@ -3,8 +3,7 @@ import numpy as np
 import gzip
 import torch
 from torch.utils.data import Dataset, DataLoader, Subset
-from typing import Tuple, Optional
-import io
+from typing import Tuple
 
 
 class InverseDynamicsDataset(Dataset):
@@ -98,7 +97,7 @@ class InverseDynamicsDataset(Dataset):
 	) -> np.ndarray:
 		"""Decompress a gzipped image blob and reshape it."""
 		decompressed = gzip.decompress(image_blob)
-		image = np.frombuffer(decompressed, dtype=np.uint8) / 255.
+		image = np.frombuffer(decompressed, dtype=np.uint8) / 255.0
 
 		return image.reshape(shape)
 
@@ -182,7 +181,9 @@ class InverseDynamicsDataset(Dataset):
 		actions = np.stack(actions, axis=0)  # (T, 2)
 
 		# Convert to torch tensors and rearrange to (T, C, H, W)
-		images = torch.from_numpy(images).permute(0, 3, 1, 2).float()  # (T, C, H, W)
+		images = (
+			torch.from_numpy(images).permute(0, 3, 1, 2).float()
+		)  # (T, C, H, W)
 		actions = torch.from_numpy(actions).float()  # (T, 2)
 
 		return images, actions

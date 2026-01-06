@@ -1,15 +1,14 @@
-import sqlite3
 import gzip
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pad_sequence
-from typing import Tuple, Dict
-import random
-import matplotlib.pyplot as plt
+from typing import Tuple, Dict, List
+from sequential_dataset_base import (
+	SequentialDatabaseDataset,
+	create_sequential_dataloader,
+)
 
 
-class DrifterSequenceDataset(Dataset):
+class DrifterSequenceDataset(SequentialDatabaseDataset):
 	"""
 	PyTorch Dataset for loading sequences of drifter simulation data for LSTM/RNN training.
 
@@ -42,136 +41,60 @@ class DrifterSequenceDataset(Dataset):
 		    transform: Optional transform to apply to images
 		    seed: Random seed for reproducibility
 		"""
-		self.db_path = db_path
-		self.min_seq_len = min_seq_len
-		self.max_seq_len = max_seq_len
 		self.transform = transform
 
-		if seed is not None:
-			random.seed(seed)
-			np.random.seed(seed)
-
-		# Connect to database and build episode index
-		self.conn = sqlite3.connect(db_path, check_same_thread=False)
-		self._build_episode_index()
-
-	def _build_episode_index(self):
-		"""
-		Build an index of all episodes and their transition ranges.
-		This allows us to sample sequences without crossing episode boundaries.
-		"""
-		cursor = self.conn.cursor()
-
-		# Get all episodes with their row ranges
-		cursor.execute("""
-            SELECT 
-                episode,
-                MIN(id) as start_id,
-                MAX(id) as end_id,
-                COUNT(*) as length
-            FROM transitions
-            GROUP BY episode
-            ORDER BY MIN(id)
-        """)
-
-		self.episodes = []
-		for row in cursor.fetchall():
-			episode_id, start_id, end_id, length = row
-			if length >= self.min_seq_len:  # Only include episodes long enough
-				self.episodes.append(
-					{
-						"episode_id": episode_id,
-						"start_id": start_id,
-						"end_id": end_id,
-						"length": length,
-					}
-				)
-
-		if not self.episodes:
-			raise ValueError(
-				f"No episodes found with length >= {self.min_seq_len}. "
-				f"Check your database or reduce min_seq_len."
-			)
-
-		# Calculate total number of valid sequences we can sample
-		# Each episode can produce multiple overlapping sequences
-		self.num_sequences = sum(
-			max(1, ep["length"] - self.min_seq_len + 1) for ep in self.episodes
+		super().__init__(
+			db_path=db_path,
+			table_name="transitions",
+			episode_column="episode",
+			id_column="id",
+			min_seq_len=min_seq_len,
+			max_seq_len=max_seq_len,
+			seed=seed,
 		)
 
-	def __len__(self) -> int:
-		return self.num_sequences
+	def get_columns(self) -> List[str]:
+		"""Return the list of columns needed from the database."""
+		return [
+			"position_x",
+			"position_y",
+			"position_z",
+			"orientation_0",
+			"orientation_1",
+			"orientation_2",
+			"orientation_3",
+			"velocity_x",
+			"velocity_y",
+			"velocity_z",
+			"local_goal_x",
+			"local_goal_y",
+			"local_goal_z",
+			"goal_x",
+			"goal_y",
+			"goal_z",
+			"camera_image",
+			"camera_shape_0",
+			"camera_shape_1",
+			"camera_shape_2",
+			"camera_dtype",
+		]
 
-	def _sample_sequence_from_episode(
-		self, episode_info: Dict
-	) -> Tuple[int, int]:
-		"""
-		Sample a random sequence start and length from an episode.
-
-		Args:
-		    episode_info: Dictionary with episode metadata
-
-		Returns:
-		    start_id: Starting row ID
-		    seq_len: Length of the sequence
-		"""
-		episode_length = episode_info["length"]
-
-		# Determine sequence length (random between min and max, but not longer than episode)
-		max_possible_len = min(self.max_seq_len, episode_length)
-		seq_len = random.randint(self.min_seq_len, max_possible_len)
-
-		# Sample starting position (ensure sequence fits within episode)
-		max_start_offset = episode_length - seq_len
-		start_offset = random.randint(0, max_start_offset)
-
-		start_id = episode_info["start_id"] + start_offset
-
-		return start_id, seq_len
-
-	def __getitem__(
-		self, idx: int
+	def parse_rows(
+		self, rows: List[Tuple]
 	) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], int]:
 		"""
-		Get a sequence sample from the dataset.
+		Parse database rows into camera images and state dictionary.
 
 		Args:
-		    idx: Index of the sample (used to seed episode selection)
+		    rows: List of database row tuples
 
 		Returns:
 		    images: Sequence of camera images [seq_len, C, H, W]
 		    state_dict: Dictionary of state sequences [seq_len, feature_dim]
 		    seq_len: Actual length of the sequence
 		"""
-		# Select a random episode (use idx for some determinism)
-		episode_idx = idx % len(self.episodes)
-		episode_info = self.episodes[episode_idx]
+		seq_len = len(rows)
 
-		# Sample a sequence from this episode
-		start_id, seq_len = self._sample_sequence_from_episode(episode_info)
-
-		# Fetch the sequence from database
-		cursor = self.conn.cursor()
-		cursor.execute(
-			"""
-            SELECT
-                position_x, position_y, position_z,
-                orientation_0, orientation_1, orientation_2, orientation_3,
-                velocity_x, velocity_y, velocity_z,
-                local_goal_x, local_goal_y, local_goal_z,
-                goal_x, goal_y, goal_z,
-                camera_image, camera_shape_0, camera_shape_1, camera_shape_2, camera_dtype,
-                id
-            FROM transitions
-            WHERE id >= ? AND id < ?
-            ORDER BY id
-        """,
-			(start_id, start_id + seq_len),
-		)
-
-		rows = cursor.fetchall()
-
-		# Parse sequences
 		images_list = []
 		positions = []
 		orientations = []
@@ -180,8 +103,6 @@ class DrifterSequenceDataset(Dataset):
 		goals = []
 
 		for row in rows:
-			rowid = row[21]
-
 			# Parse state components
 			position = np.array([row[0], row[1], row[2]], dtype=np.float32)
 			orientation = np.array(
@@ -203,7 +124,6 @@ class DrifterSequenceDataset(Dataset):
 			dtype = row[20]
 
 			decompressed = gzip.decompress(compressed_img)
-
 			image = (
 				np.frombuffer(decompressed, dtype=dtype).reshape(shape).copy()
 			)
@@ -234,50 +154,8 @@ class DrifterSequenceDataset(Dataset):
 
 		return images, state_dict, seq_len
 
-	def __del__(self):
-		"""Close database connection when dataset is deleted."""
-		if hasattr(self, "conn"):
-			self.conn.close()
 
-
-def collate_fn_sequences(batch):
-	"""
-	Custom collate function for variable-length sequences.
-	Pads sequences to the same length within a batch.
-
-	Args:
-	    batch: List of (images, state_dict, seq_len) tuples
-
-	Returns:
-	    images: Padded images tensor [batch_size, max_seq_len, C, H, W]
-	    states: Dictionary of padded state tensors [batch_size, max_seq_len, feature_dim]
-	    seq_lengths: Tensor of actual sequence lengths [batch_size]
-	"""
-	# Separate batch components
-	images_list = [item[0] for item in batch]
-	states_list = [item[1] for item in batch]
-	seq_lengths = torch.tensor([item[2] for item in batch], dtype=torch.long)
-
-	# Pad image sequences
-	# pad_sequence expects [seq_len, batch, ...] so we need to transpose
-	images_padded = pad_sequence(
-		images_list, batch_first=True, padding_value=0.0
-	)
-	# Result: [batch_size, max_seq_len, C, H, W]
-
-	# Pad each state component
-	states_padded = {}
-	for key in states_list[0].keys():
-		state_sequences = [states[key] for states in states_list]
-		padded = pad_sequence(
-			state_sequences, batch_first=True, padding_value=0.0
-		)
-		states_padded[key] = padded
-
-	return images_padded, states_padded, seq_lengths
-
-
-def create_sequence_dataloader(
+def create_drifter_dataloader(
 	db_path: str,
 	min_seq_len: int = 10,
 	max_seq_len: int = 50,
@@ -286,9 +164,9 @@ def create_sequence_dataloader(
 	num_workers: int = 4,
 	transform=None,
 	seed: int = None,
-) -> DataLoader:
+):
 	"""
-	Create a DataLoader for sequential drifter data.
+	Create a DataLoader for drifter sequential data.
 
 	Args:
 	    db_path: Path to SQLite database
@@ -311,23 +189,19 @@ def create_sequence_dataloader(
 		seed=seed,
 	)
 
-	dataloader = DataLoader(
+	return create_sequential_dataloader(
 		dataset,
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
-		collate_fn=collate_fn_sequences,
-		pin_memory=False,
 	)
-
-	return dataloader
 
 
 # Example usage
 if __name__ == "__main__":
 	# Create sequence dataloader
 	db_path = "drifter_data.db"
-	dataloader = create_sequence_dataloader(
+	dataloader = create_drifter_dataloader(
 		db_path,
 		min_seq_len=10,
 		max_seq_len=30,

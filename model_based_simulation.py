@@ -30,7 +30,7 @@ class ModelBasedSimulation:
 			self.car_id = p.loadURDF(f.name, start_pos, start_orientation)
 
 		# Get joint information
-		num_joints = p.getNumJoints(self.car_id)
+		p.getNumJoints(self.car_id)
 		p.changeDynamics(
 			self.car_id, -1, linearDamping=0.005, angularDamping=0.005
 		)
@@ -55,8 +55,7 @@ class ModelBasedSimulation:
 		self.plane_id = p.loadURDF("plane.urdf")
 
 		# Load car for visualization
-		start_pos = [0, 0, 0.5]
-		start_orientation = p.getQuaternionFromEuler([0, 0, 0])
+		p.getQuaternionFromEuler([0, 0, 0])
 		self._load_car()
 
 		# Load goal marker
@@ -222,7 +221,7 @@ class ModelBasedSimulation:
 		# Get prediction from model
 		with torch.no_grad():
 			delta_tensor = self.model(self.current_state, action)
-			delta = BatchedStateDelta.from_tensor(delta_tensor.unsqueeze(0))
+			BatchedStateDelta.from_tensor(delta_tensor.unsqueeze(0))
 
 		# Apply delta to current state (note: model predicts state - next_state)
 		# So we need to subtract the delta

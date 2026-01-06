@@ -1,74 +1,22 @@
 from tqdm import tqdm
 import torch
 import click
-from env_vision_model import EnvModel
 from drifter_dataloader_sequential import (
 	create_sequence_dataloader as create_dataloader,
 )
 from torch.nn import MSELoss
 from torch.optim import Adam
-from torch.utils.tensorboard import SummaryWriter
-import matplotlib.pyplot as plt
-import numpy as np
 import mlflow
 
 mlflow.set_tracking_uri("http://localhost:6006")
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-#model = mlflow.pytorch.load_model(f"models:/best_id_model/latest")
-model = torch.load('model.pth', weights_only=False)
+model = torch.load("model.pth", weights_only=False)
 model.train()
 
 criterion = MSELoss()
 opt = Adam(model.parameters())
-
-#writer = SummaryWriter()
-
-def do_logging():
-	sample_est = model(sample_imgs.to(dev), sample_seqlens)
-	sample_position_est = sample_est["position"]
-	true_sample_position = sample_states["position"]
-
-	fig, ax = plt.subplots()
-
-	est_x = sample_position_est[0, :, 0].detach().cpu().numpy()
-	est_y = sample_position_est[0, :, 1].detach().cpu().numpy()
-	true_x = true_sample_position[0, :, 0].detach().cpu().numpy()
-	true_y = true_sample_position[0, :, 1].detach().cpu().numpy()
-
-	n_pts = len(true_x)
-	colors = np.arange(n_pts)
-
-	ax.plot(
-		est_x,
-		est_y,
-		marker="o",
-		linestyle="--",
-		label="Estimated positions",
-	)
-
-	scatter = ax.scatter(
-		true_x, true_y, c=colors, cmap="plasma", label="True positions"
-	)
-
-	ax.set_xbound(-20, 20)
-	ax.set_ybound(-20, 20)
-
-	fig.colorbar(scatter, ax=ax, label="Timestep")
-
-	ax.legend()
-
-	mlflow.log_figure(
-		fig,
-		"trajectory_step{epoch * len(dataloader) + idx}.png"
-	)
-	plt.close(fig)
-
-#	writer.add_video(
-#		"Sampled Trajectory", sample_imgs, epoch * len(dataloader) + idx
-#	)
-
 
 @click.command()
 @click.option(
@@ -105,15 +53,13 @@ def main(train_db, epochs, batch_size):
 					per_output_loss[key] = this_loss
 					loss += this_loss
 
-			mlflow.log_metrics(
-				per_output_loss,
-				step=totalidx
-			)
+			mlflow.log_metrics(per_output_loss, step=totalidx)
 			mlflow.log_metric("loss", loss, step=totalidx)
 
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 	main()
