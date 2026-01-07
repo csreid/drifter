@@ -3,6 +3,7 @@ import torch
 import click
 from drifter_dataloader_sequential import (
 	create_sequential_dataloader as create_dataloader,
+	DrifterSequenceDataset,
 )
 from torch.nn import MSELoss
 from torch.optim import Adam
@@ -29,8 +30,13 @@ opt = Adam(model.parameters())
 	"--epochs", type=int, default=50, help="Number of epochs to train"
 )
 def main(train_db, epochs, batch_size):
-	dataloader = create_dataloader(
+	dataset = DrifterSequenceDataset(
 		db_path=train_db,
+		min_seq_len=40,
+		max_seq_len=75,
+	)
+	dataloader = create_dataloader(
+		dataset=dataset,
 		batch_size=batch_size,
 		shuffle=True,
 		num_workers=4,
