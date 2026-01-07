@@ -2,7 +2,7 @@ from tqdm import tqdm
 import torch
 import click
 from drifter_dataloader_sequential import (
-	create_sequence_dataloader as create_dataloader,
+	create_sequential_dataloader as create_dataloader,
 )
 from torch.nn import MSELoss
 from torch.optim import Adam
