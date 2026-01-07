@@ -2,7 +2,7 @@ import gzip
 import numpy as np
 import torch
 from typing import Tuple, Dict, List
-from sequential_dataset_base import (
+from sequential_dataset import (
 	SequentialDatabaseDataset,
 	create_sequential_dataloader,
 )
