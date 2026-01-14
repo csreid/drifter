@@ -40,18 +40,6 @@ def _get_output_shape(model, input_shape):
 class EnvModel(Module):
 	def __init__(self, hidden_size=512, pretrained_vision=False):
 		super().__init__()
-		# self._viz_pipeline = Sequential(
-		# Conv2d(3, 16, kernel_size=4, stride=2),
-		# LeakyReLU(),
-		# Conv2d(16, 64, kernel_size=3, stride=2),
-		# LeakyReLU(),
-		# Conv2d(64, 128, kernel_size=3, stride=2),
-		# LeakyReLU(),
-		# Conv2d(128, 512, kernel_size=3, stride=2),
-		# AdaptiveAvgPool2d((1, 1)),
-		# LeakyReLU(),
-		# Flatten(),
-		# )
 
 		self.register_buffer(
 			"mean", torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
