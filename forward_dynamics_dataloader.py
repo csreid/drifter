@@ -3,11 +3,9 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from typing import Tuple, Dict, List, Any, Optional
+from typing import Tuple, Dict, List, Optional
 import random
 import gzip
-import io
-from abc import ABC, abstractmethod
 
 
 class ForwardDynamicsDataset(Dataset):
