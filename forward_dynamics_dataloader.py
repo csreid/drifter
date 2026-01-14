@@ -202,7 +202,7 @@ class ForwardDynamicsDataset(Dataset):
 			for i in range(num_hidden_states):
 				# Get context window
 				img_window = images[i : i + self.lstm_context].unsqueeze(
-					0
+					1
 				)  # [1, context, C, H, W]
 				img_window = img_window.to(self.device)
 

@@ -378,7 +378,7 @@ def main(
 					best_val_loss = val_metrics["validation_loss"]
 					model_info = mlflow.pytorch.log_model(
 						pytorch_model=model,
-						name="best_id_model_epoch{epoch}",
+						name=f"best_id_model_epoch{epoch}",
 						step=epoch,
 					)
 					mlflow.log_metric(
