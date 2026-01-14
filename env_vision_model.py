@@ -112,7 +112,6 @@ class EnvModel(Module):
 			out, size=(224, 224), mode="bilinear", align_corners=False
 		)
 
-		print(f'{out.shape=} | {self.mean.shape=}')
 		out = (out - self.mean) / self.std
 		out = self._viz_pipeline(out)
 		out = self._h1(out)
