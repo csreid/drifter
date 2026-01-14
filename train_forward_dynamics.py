@@ -28,7 +28,6 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 		h_t = h_t.to(device)  # (B, T, N)
 		a_t = a_t.to(device)  # (B, T, 2)
 		h_t_next = h_t_next.to(device)  # (B, T, N)
-		seqlens = seqlens.to(device) # ??? (B,)
 
 		batch_size = h_t.shape[0]
 
