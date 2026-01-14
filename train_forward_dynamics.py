@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 
 from forward_dynamics_dataloader import create_forward_dynamics_dataloader
+from env_vision_model import EnvModel
 
 import mlflow
 
@@ -146,7 +147,9 @@ def main(
 	output_dir = Path(output_dir)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
-	model=torch.load(id_model, weights_only=False),
+	#model=torch.load(id_model, weights_only=False)
+	model = EnvModel(hidden_size=512)
+	model.load_state_dict(torch.load(id_model))
 	# Create dataloaders
 	print("Creating dataloaders...")
 	train_loader = create_forward_dynamics_dataloader(
