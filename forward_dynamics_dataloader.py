@@ -209,7 +209,7 @@ class ForwardDynamicsDataset(Dataset):
 				# Get hidden state (last timestep of this window)
 				seq_lens = torch.tensor(
 					[self.lstm_context], dtype=torch.long
-				).to(self.device)
+				)
 				hidden = self.id_model._get_hidden(
 					img_window, seq_lens
 				)  # [1, hidden_dim]
