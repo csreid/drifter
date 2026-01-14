@@ -337,7 +337,7 @@ def create_forward_dynamics_dataloader(
 	db_path: str,
 	id_model: torch.nn.Module,
 	device: str = "cuda",
-	lstm_context: int = 3,
+	sequence_length: int = 5,
 	batch_size: int = 16,
 	shuffle: bool = True,
 	num_workers: int = 0,  # Set to 0 to avoid issues with CUDA and multiprocessing
@@ -350,7 +350,7 @@ def create_forward_dynamics_dataloader(
 	    db_path: Path to the SQLite database
 	    id_model: Pre-trained inverse dynamics model
 	    device: Device to run ID model on
-	    lstm_context: Number of images needed by LSTM
+	    sequence_length: Number of images needed by LSTM
 	    batch_size: Batch size
 	    shuffle: Whether to shuffle
 	    num_workers: Number of worker processes (recommend 0 for CUDA models)
@@ -363,7 +363,7 @@ def create_forward_dynamics_dataloader(
 		db_path=db_path,
 		id_model=id_model,
 		device=device,
-		lstm_context=lstm_context,
+		lstm_context=sequence_length,
 		**dataset_kwargs,
 	)
 
