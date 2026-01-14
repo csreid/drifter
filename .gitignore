@@ -6,3 +6,4 @@ transitions.csv
 model.pt
 *.db
 *.mp4
+model.pth

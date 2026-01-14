@@ -202,7 +202,7 @@ class ForwardDynamicsDataset(Dataset):
 			for i in range(num_hidden_states):
 				# Get context window
 				img_window = images[i : i + self.lstm_context].unsqueeze(
-					1
+					0
 				)  # [1, context, C, H, W]
 				img_window = img_window.to(self.device)
 
@@ -261,7 +261,7 @@ class ForwardDynamicsDataset(Dataset):
 			) = row
 
 			# Decompress image
-			shape = (shape_0, shape_1, shape_2)
+			shape = (shape_2, shape_1, shape_0)
 			img = self._decompress_image(camera_blob, shape, dtype_str)
 			images.append(img)
 
@@ -273,10 +273,6 @@ class ForwardDynamicsDataset(Dataset):
 			np.stack(images)
 		).float()  # [seq_len, C, H, W]
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
-
-		# Normalize images to [0, 1] if needed
-		if images.max() > 1.0:
-			images = images / 255.0
 
 		# Encode images to hidden states
 		# This gives us hidden states for positions 0, 1, ..., seq_len - lstm_context

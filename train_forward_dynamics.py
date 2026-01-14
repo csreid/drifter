@@ -9,10 +9,10 @@ import numpy as np
 from forward_dynamics_dataloader import create_forward_dynamics_dataloader
 from env_vision_model import EnvModel
 
-import mlflow
-
-mlflow.enable_system_metrics_logging()
-mlflow.set_tracking_uri("http://localhost:6006")
+#import mlflow
+#
+#mlflow.enable_system_metrics_logging()
+#mlflow.set_tracking_uri("http://localhost:6006")
 
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 	"""Train for one epoch."""
@@ -147,9 +147,9 @@ def main(
 	output_dir = Path(output_dir)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
-	#model=torch.load(id_model, weights_only=False)
-	model = EnvModel(hidden_size=512)
-	model.load_state_dict(torch.load(id_model))
+	model=torch.load(id_model, weights_only=False, map_location=torch.device(device))
+#	model = EnvModel(hidden_size=512)
+#	model.load_state_dict(torch.load(id_model))
 	# Create dataloaders
 	print("Creating dataloaders...")
 	train_loader = create_forward_dynamics_dataloader(
@@ -159,6 +159,7 @@ def main(
 		batch_size=batch_size,
 		shuffle=True,
 		num_workers=num_workers,
+		device=device
 	)
 
 	print(f"Training batches: {len(train_loader)}")
@@ -181,21 +182,21 @@ def main(
 		"sequence_length": sequence_length,
 	}
 
-	with mlflow.start_run():
-		mlflow.log_params(params)
+	#with mlflow.start_run():
+		#mlflow.log_params(params)
 
-		for epoch in range(epochs):
-			# Train
-			train_loss = train_epoch(
-				model, train_loader, optimizer, criterion, device, epoch
-			)
+	for epoch in range(epochs):
+		# Train
+		train_loss = train_epoch(
+			model, train_loader, optimizer, criterion, device, epoch
+		)
 
-			mlflow.log_metrics(
-				{
-					"train_loss": train_loss,
-				},
-				step=epoch,
-			)
+#			mlflow.log_metrics(
+#				{
+#					"train_loss": train_loss,
+#				},
+#				step=epoch,
+#			)
 
 	print("\nTraining complete!")
 
