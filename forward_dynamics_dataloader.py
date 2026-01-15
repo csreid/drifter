@@ -207,9 +207,7 @@ class ForwardDynamicsDataset(Dataset):
 				img_window = img_window.to(self.device)
 
 				# Get hidden state (last timestep of this window)
-				seq_lens = torch.tensor(
-					[self.lstm_context], dtype=torch.long
-				)
+				seq_lens = torch.tensor([self.lstm_context], dtype=torch.long)
 				hidden = self.id_model._get_hidden(
 					img_window, seq_lens
 				)  # [1, hidden_dim]
@@ -230,10 +228,10 @@ class ForwardDynamicsDataset(Dataset):
 		Get a batch of (h_t, a_t) -> h_{t+1} transitions.
 
 		Returns:
-		    hidden_states: [num_transitions, hidden_dim] - h_t values
-		    actions: [num_transitions, action_dim] - a_t values
-		    next_hidden_states: [num_transitions, hidden_dim] - h_{t+1} values
-		    num_transitions: int - actual number of transitions in this sequence
+				hidden_states: [num_transitions, hidden_dim] - h_t values
+				actions: [num_transitions, action_dim] - a_t values
+				next_hidden_states: [num_transitions, hidden_dim] - h_{t+1} values
+				num_transitions: int - actual number of transitions in this sequence
 		"""
 		# Select an episode
 		episode_idx = idx % len(self.episodes)
@@ -261,7 +259,7 @@ class ForwardDynamicsDataset(Dataset):
 			) = row
 
 			# Decompress image
-			shape = (shape_2, shape_1, shape_0)
+			shape = (shape_0, shape_1, shape_2)
 			img = self._decompress_image(camera_blob, shape, dtype_str)
 			images.append(img)
 
@@ -274,24 +272,60 @@ class ForwardDynamicsDataset(Dataset):
 		).float()  # [seq_len, C, H, W]
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
 
-		# Encode images to hidden states
-		# This gives us hidden states for positions 0, 1, ..., seq_len - lstm_context
-		hidden_states = self._encode_images(
-			images
-		)  # [seq_len - context + 1, hidden_dim]
+		# Normalize images to [0, 1] if needed
+		if images.max() > 1.0:
+			images = images / 255.0
 
-		# Create transitions: (h_t, a_t) -> h_{t+1}
-		# We have actions at positions 0, 1, ..., seq_len - 1
-		# We have hidden states at positions 0, 1, ..., seq_len - context
-		# So we can create transitions from positions 0 to seq_len - context - 1
+		num_transitions = (
+			seq_len - self.lstm_context
+		)  # Need context+1 frames per transition
+		h_t_list = []
+		a_t_list = []
+		h_t_next_list = []
 
-		num_transitions = hidden_states.shape[0] - 1
+		with torch.no_grad():
+			for i in range(num_transitions):
+				# Get h_t from context window
+				imgs_t = (
+					images[i : i + self.lstm_context]
+					.unsqueeze(0)
+					.to(self.device)
+				)  # [1, context, C, H, W]
+				seq_lens_t = torch.tensor(
+					[self.lstm_context], dtype=torch.long
+				).to(self.device)
+				h_t = self.id_model._get_hidden(
+					imgs_t, seq_lens_t
+				)  # [1, hidden_dim]
 
-		h_t = hidden_states[:-1]  # [num_transitions, hidden_dim]
-		a_t = actions[self.lstm_context - 1 : -1]  # [num_transitions, 2]
-		h_t_next = hidden_states[1:]  # [num_transitions, hidden_dim]
+				# Get h_{t+1} from context+1 window
+				imgs_t_next = (
+					images[i : i + self.lstm_context + 1]
+					.unsqueeze(0)
+					.to(self.device)
+				)  # [1, context+1, C, H, W]
+				seq_lens_t_next = torch.tensor(
+					[self.lstm_context + 1], dtype=torch.long
+				).to(self.device)
+				h_t_next = self.id_model._get_hidden(
+					imgs_t_next, seq_lens_t_next
+				)  # [1, hidden_dim]
 
-		return h_t, a_t, h_t_next, num_transitions
+				# Get action at time i+context-1 (the action taken after seeing context images)
+				a_t = actions[i + self.lstm_context - 1]
+
+				h_t_list.append(h_t.cpu().squeeze(0))
+				h_t_next_list.append(h_t_next.cpu().squeeze(0))
+				a_t_list.append(a_t)
+
+		# Stack into tensors
+		h_t_batch = torch.stack(h_t_list)  # [num_transitions, hidden_dim]
+		a_t_batch = torch.stack(a_t_list)  # [num_transitions, action_dim]
+		h_t_next_batch = torch.stack(
+			h_t_next_list
+		)  # [num_transitions, hidden_dim]
+
+		return h_t_batch, a_t_batch, h_t_next_batch, num_transitions
 
 	def __del__(self):
 		"""Close database connection when dataset is deleted."""
