@@ -293,7 +293,7 @@ class ForwardDynamicsDataset(Dataset):
 				)  # [1, context, C, H, W]
 				seq_lens_t = torch.tensor(
 					[self.lstm_context], dtype=torch.long
-				).to(self.device)
+				)
 				h_t = self.id_model._get_hidden(
 					imgs_t, seq_lens_t
 				)  # [1, hidden_dim]
