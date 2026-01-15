@@ -69,8 +69,6 @@ class ForwardDynamicsDataset(Dataset):
 		# Store and freeze the ID model
 		self.id_model = id_model.to(device)
 		self.id_model.eval()
-		for param in self.id_model.parameters():
-			param.requires_grad = False
 
 		# Connect to database and build episode index
 		self.conn = sqlite3.connect(db_path, check_same_thread=False)

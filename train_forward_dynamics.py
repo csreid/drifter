@@ -150,8 +150,8 @@ def main(
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	model=torch.load(id_model, weights_only=False, map_location=torch.device(device))
-#	model = EnvModel(hidden_size=512)
-#	model.load_state_dict(torch.load(id_model))
+	model.train()
+
 	# Create dataloaders
 	print("Creating dataloaders...")
 	train_loader = create_forward_dynamics_dataloader(
