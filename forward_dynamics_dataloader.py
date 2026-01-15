@@ -269,7 +269,7 @@ class ForwardDynamicsDataset(Dataset):
 		# Convert to tensors
 		images = torch.from_numpy(
 			np.stack(images)
-		).float()  # [seq_len, C, H, W]
+		).float().permute(0,3,1,2)  # [T, C, H, W]
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
 
 		# Normalize images to [0, 1] if needed
