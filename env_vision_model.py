@@ -100,7 +100,6 @@ class EnvModel(Module):
 		)
 
 	def _simple_forward_dynamics(self, h, a):
-		print(f"{h.shape=}, {a.shape=}")
 		out = torch.cat([h[:, :, -1, :], a], dim=2)
 		return self._fk_head(out)
 

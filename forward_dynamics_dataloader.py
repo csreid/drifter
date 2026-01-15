@@ -272,10 +272,6 @@ class ForwardDynamicsDataset(Dataset):
 		).float().permute(0,3,1,2)  # [T, C, H, W]
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
 
-		# Normalize images to [0, 1] if needed
-		if images.max() > 1.0:
-			images = images / 255.0
-
 		num_transitions = (
 			seq_len - self.lstm_context
 		)  # Need context+1 frames per transition
