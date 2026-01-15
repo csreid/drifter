@@ -292,7 +292,7 @@ class ForwardDynamicsDataset(Dataset):
 				)
 				h_t = self.id_model._get_hidden(
 					imgs_t, seq_lens_t
-				)[:, :, -1, :]  # [1, hidden_dim]
+				)[:, -1, :]  # [1, hidden_dim]
 
 				# Get h_{t+1} from context+1 window
 				imgs_t_next = (
@@ -305,7 +305,7 @@ class ForwardDynamicsDataset(Dataset):
 				)
 				h_t_next = self.id_model._get_hidden(
 					imgs_t_next, seq_lens_t_next
-				)[:, :, -1, :]  # [1, hidden_dim]
+				)[:, -1, :]  # [1, hidden_dim]
 
 				# Get action at time i+context-1 (the action taken after seeing context images)
 				a_t = actions[i + self.lstm_context - 1]
