@@ -39,7 +39,7 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 		predicted_next = model._simple_forward_dynamics(h_t, a_t)  # (B, T, 2)
 
 		# Compute loss
-		loss = criterion(predicted_next, h_t_next)
+		loss = criterion(predicted_next, h_t_next.detach())
 
 		# Backward pass
 		loss.backward()
@@ -167,6 +167,7 @@ def main(
 	print(f"Training batches: {len(train_loader)}")
 
 	# Print model size
+	model.train()
 	num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
 	print(f"Model has {num_params:,} trainable parameters")
 
