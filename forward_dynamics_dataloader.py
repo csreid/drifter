@@ -74,6 +74,8 @@ class ForwardDynamicsDataset(Dataset):
 		self.conn = sqlite3.connect(db_path, check_same_thread=False)
 		self._build_episode_index()
 
+		self._embedding_cache = {}
+
 	def _build_episode_index(self):
 		"""Build an index of all episodes and their row ranges."""
 		cursor = self.conn.cursor()
@@ -231,6 +233,10 @@ class ForwardDynamicsDataset(Dataset):
 				next_hidden_states: [num_transitions, hidden_dim] - h_{t+1} values
 				num_transitions: int - actual number of transitions in this sequence
 		"""
+
+		if idx in self._embedding_cache:
+			return self._embedding_cache[idx]
+
 		# Select an episode
 		episode_idx = idx % len(self.episodes)
 		episode_info = self.episodes[episode_idx]
@@ -319,7 +325,10 @@ class ForwardDynamicsDataset(Dataset):
 			h_t_next_list
 		)  # [num_transitions, hidden_dim]
 
-		return h_t_batch, a_t_batch, h_t_next_batch, num_transitions
+		val = (h_t_batch, a_t_batch, h_t_next_batch, num_transitions)
+
+		self._embedding_cache[idx] = val
+		return val
 
 	def __del__(self):
 		"""Close database connection when dataset is deleted."""

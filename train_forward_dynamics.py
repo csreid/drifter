@@ -9,10 +9,10 @@ import numpy as np
 from forward_dynamics_dataloader import create_forward_dynamics_dataloader
 from env_vision_model import EnvModel
 
-#import mlflow
-#
-#mlflow.enable_system_metrics_logging()
-#mlflow.set_tracking_uri("http://localhost:6006")
+import mlflow
+
+mlflow.enable_system_metrics_logging()
+mlflow.set_tracking_uri("http://localhost:6006")
 
 def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 	"""Train for one epoch."""
@@ -175,9 +175,6 @@ def main(
 	optimizer = Adam(model.parameters(), lr=lr)
 	criterion = nn.MSELoss()
 
-	# sample_seq = next(iter(train_loader))
-	# writer.add_video("sample", sample_seq[0], 0)
-
 	params = {
 		"epochs": epochs,
 		"dataset_size": len(train_loader),
@@ -185,21 +182,21 @@ def main(
 		"sequence_length": sequence_length,
 	}
 
-	#with mlflow.start_run():
-		#mlflow.log_params(params)
+	with mlflow.start_run():
+		mlflow.log_params(params)
 
-	for epoch in range(epochs):
-		# Train
-		train_loss = train_epoch(
-			model, train_loader, optimizer, criterion, device, epoch
-		)
+		for epoch in range(epochs):
+			# Train
+			train_loss = train_epoch(
+				model, train_loader, optimizer, criterion, device, epoch
+			)
 
-#			mlflow.log_metrics(
-#				{
-#					"train_loss": train_loss,
-#				},
-#				step=epoch,
-#			)
+			mlflow.log_metrics(
+				{
+					"train_loss": train_loss,
+				},
+				step=epoch,
+			)
 
 	print("\nTraining complete!")
 
