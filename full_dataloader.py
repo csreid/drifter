@@ -7,13 +7,16 @@ from typing import Tuple, Dict, List, Optional
 import random
 import gzip
 
-
-class ForwardDynamicsDataset(Dataset):
+class ForwardDynamicsDecoderDataset(Dataset):
 	"""
-	Dataset for training forward dynamics in latent space.
+	Dataset for training forward dynamics + decoder in latent space.
 
 	Uses a pre-trained inverse dynamics model to encode image sequences into
-	hidden states, then provides (h_t, a_t) -> h_{t+1} pairs for training.
+	hidden states, then provides:
+	- (h_t, a_t) -> h_{t+1} pairs for forward dynamics
+	- h_t -> state_t pairs for decoder
+
+	All positions are made relative to the initial position of the sequence.
 
 	Args:
 	    db_path: Path to the SQLite database
@@ -72,9 +75,22 @@ class ForwardDynamicsDataset(Dataset):
 
 		# Connect to database and build episode index
 		self.conn = sqlite3.connect(db_path, check_same_thread=False)
+		print(f'Building episode index...')
 		self._build_episode_index()
 
+		print(f'Presampling sequence windows...')
+		self._sample_all_sequences()
+
+
 		self._embedding_cache = {}
+
+	def _sample_all_sequences():
+		self.sequences = []
+		for _ in range(self.num_transitions):
+			episode_idx = random.randint(0, len(self.episodes) - 1)
+			episode_info = self.episodes[episode_idx]
+			start_id, seq_len = self._sample_sequence_from_episode(episode_info)
+			self.sequences.append((episode_info['episode_id'], start_id, seq_len))
 
 	def _build_episode_index(self):
 		"""Build an index of all episodes and their row ranges."""
@@ -164,6 +180,21 @@ class ForwardDynamicsDataset(Dataset):
 			"camera_dtype",
 			"action_0",
 			"action_1",
+			# State variables
+			"position_x",
+			"position_y",
+			"position_z",
+			"local_goal_x",
+			"local_goal_y",
+			"local_goal_z",
+			"velocity_x",
+			"velocity_y",
+			"velocity_z",
+			"is_flipped",
+			"orientation_0",
+			"orientation_1",
+			"orientation_2",
+			"orientation_3",
 		]
 		columns_str = ", ".join(columns)
 
@@ -177,64 +208,80 @@ class ForwardDynamicsDataset(Dataset):
 
 		return cursor.fetchall()
 
-	def _encode_images(self, images: torch.Tensor) -> torch.Tensor:
+	def _parse_state(
+		self, row: Tuple, initial_position: np.ndarray
+	) -> np.ndarray:
 		"""
-		Encode a sequence of images to hidden states using the ID model.
+		Parse state variables from a database row.
 
-		Args:
-		    images: [seq_len, C, H, W] tensor
+		Makes positions relative to initial_position.
 
 		Returns:
-		    hidden_states: [seq_len - lstm_context + 1, hidden_dim] tensor
+		    state: [14] array with [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
 		"""
-		seq_len = images.shape[0]
+		(
+			_camera_blob,
+			_shape_0,
+			_shape_1,
+			_shape_2,
+			_dtype_str,
+			_action_0,
+			_action_1,
+			pos_x,
+			pos_y,
+			pos_z,
+			local_goal_x,
+			local_goal_y,
+			local_goal_z,
+			vel_x,
+			vel_y,
+			vel_z,
+			is_flipped,
+			orient_0,
+			orient_1,
+			orient_2,
+			orient_3,
+		) = row
 
-		# We need to extract hidden states for overlapping windows
-		# For a sequence of length N with context C:
-		# - h_0 comes from images[0:C]
-		# - h_1 comes from images[1:C+1]
-		# - h_N-C comes from images[N-C:N]
+		# Make position relative to start
+		position = np.array([pos_x, pos_y, pos_z]) - initial_position
+		local_goal = np.array([local_goal_x, local_goal_y, local_goal_z])
+		velocity = np.array([vel_x, vel_y, vel_z])
+		orientation = np.array([orient_0, orient_1, orient_2, orient_3])
 
-		num_hidden_states = seq_len - self.lstm_context + 1
-		hidden_states = []
+		# Concatenate: [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
+		state = np.concatenate(
+			[position, local_goal, velocity, [is_flipped], orientation]
+		)
 
-		with torch.no_grad():
-			for i in range(num_hidden_states):
-				# Get context window
-				img_window = images[i : i + self.lstm_context].unsqueeze(
-					0
-				)  # [1, context, C, H, W]
-				img_window = img_window.to(self.device)
-
-				# Get hidden state (last timestep of this window)
-				seq_lens = torch.tensor([self.lstm_context], dtype=torch.long)
-				hidden = self.id_model._get_hidden(
-					img_window, seq_lens
-				)  # [1, hidden_dim]
-
-				hidden_states.append(hidden.cpu())
-
-		# Stack all hidden states
-		hidden_states = torch.cat(
-			hidden_states, dim=0
-		)  # [num_hidden_states, hidden_dim]
-
-		return hidden_states
+		return state
 
 	def __getitem__(
 		self, idx: int
-	) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, int]:
+	) -> Tuple[
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		int,
+	]:
 		"""
-		Get a batch of (h_t, a_t) -> h_{t+1} transitions.
+		Get a batch of transitions with states for decoder.
 
 		Returns:
-				hidden_states: [num_transitions, hidden_dim] - h_t values
-				actions: [num_transitions, action_dim] - a_t values
-				next_hidden_states: [num_transitions, hidden_dim] - h_{t+1} values
-				num_transitions: int - actual number of transitions in this sequence
+		    hidden_states: [num_transitions, hidden_dim] - h_t values
+		    actions: [num_transitions, action_dim] - a_t values
+		    next_hidden_states: [num_transitions, hidden_dim] - h_{t+1} values
+		    states: [num_transitions, state_dim] - ground truth states at t
+		    next_states: [num_transitions, state_dim] - ground truth states at t+1
+		    num_transitions: int - actual number of transitions in this sequence
 		"""
 
-		if idx in self._embedding_cache:
+		episode_id, start_id, seq_len = self.sequences[idx]
+		cache_key = (episode_id, start_id, seq_len)
+
+		if cache_key in self._embedding_cache:
 			return self._embedding_cache[idx]
 
 		# Select an episode
@@ -247,34 +294,40 @@ class ForwardDynamicsDataset(Dataset):
 		# Fetch the sequence from database
 		rows = self._fetch_sequence(start_id, seq_len)
 
-		# Parse images and actions
+		# Get initial position for making everything relative
+		initial_position = np.array(
+			[rows[0][7], rows[0][8], rows[0][9]]
+		)  # position_x, y, z
+
+		# Parse images, actions, and states
 		images = []
 		actions = []
+		states = []
 
 		for row in rows:
-			(
-				camera_blob,
-				shape_0,
-				shape_1,
-				shape_2,
-				dtype_str,
-				action_0,
-				action_1,
-			) = row
-
 			# Decompress image
-			shape = (shape_0, shape_1, shape_2)
+			camera_blob = row[0]
+			shape = (row[1], row[2], row[3])
+			dtype_str = row[4]
 			img = self._decompress_image(camera_blob, shape, dtype_str)
 			images.append(img)
 
 			# Store action
+			action_0, action_1 = row[5], row[6]
 			actions.append([action_0, action_1])
+
+			# Parse state (relative to initial position)
+			state = self._parse_state(row, initial_position)
+			states.append(state)
 
 		# Convert to tensors
 		images = (
 			torch.from_numpy(np.stack(images)).float().permute(0, 3, 1, 2)
 		)  # [T, C, H, W]
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
+		states = torch.tensor(
+			np.stack(states), dtype=torch.float32
+		)  # [seq_len, 14]
 
 		num_transitions = (
 			seq_len - self.lstm_context
@@ -282,6 +335,8 @@ class ForwardDynamicsDataset(Dataset):
 		h_t_list = []
 		a_t_list = []
 		h_t_next_list = []
+		state_t_list = []
+		state_t_next_list = []
 
 		with torch.no_grad():
 			for i in range(num_transitions):
@@ -312,9 +367,17 @@ class ForwardDynamicsDataset(Dataset):
 				# Get action at time i+context-1 (the action taken after seeing context images)
 				a_t = actions[i + self.lstm_context - 1]
 
+				# Get states at t and t+1
+				# State at t corresponds to the last frame of the context window
+				state_t = states[i + self.lstm_context - 1]
+				# State at t+1 is one frame later
+				state_t_next = states[i + self.lstm_context]
+
 				h_t_list.append(h_t.cpu().squeeze(0))
 				h_t_next_list.append(h_t_next.cpu().squeeze(0))
 				a_t_list.append(a_t)
+				state_t_list.append(state_t)
+				state_t_next_list.append(state_t_next)
 
 		# Stack into tensors
 		h_t_batch = torch.stack(h_t_list)  # [num_transitions, hidden_dim]
@@ -322,8 +385,19 @@ class ForwardDynamicsDataset(Dataset):
 		h_t_next_batch = torch.stack(
 			h_t_next_list
 		)  # [num_transitions, hidden_dim]
+		state_t_batch = torch.stack(state_t_list)  # [num_transitions, 14]
+		state_t_next_batch = torch.stack(
+			state_t_next_list
+		)  # [num_transitions, 14]
 
-		val = (h_t_batch, a_t_batch, h_t_next_batch, num_transitions)
+		val = (
+			h_t_batch,
+			a_t_batch,
+			h_t_next_batch,
+			state_t_batch,
+			state_t_next_batch,
+			num_transitions,
+		)
 
 		self._embedding_cache[idx] = val
 		return val
@@ -334,25 +408,29 @@ class ForwardDynamicsDataset(Dataset):
 			self.conn.close()
 
 
-def collate_forward_dynamics(batch):
+def collate_forward_dynamics_decoder(batch):
 	"""
-	Collate function for forward dynamics dataset.
+	Collate function for forward dynamics + decoder dataset.
 
 	Handles variable-length sequences by padding.
 
 	Args:
-	    batch: List of (h_t, a_t, h_t_next, num_transitions) tuples
+	    batch: List of (h_t, a_t, h_t_next, state_t, state_t_next, num_transitions) tuples
 
 	Returns:
 	    h_t_padded: [batch_size, max_transitions, hidden_dim]
 	    a_t_padded: [batch_size, max_transitions, action_dim]
 	    h_t_next_padded: [batch_size, max_transitions, hidden_dim]
+	    state_t_padded: [batch_size, max_transitions, state_dim]
+	    state_t_next_padded: [batch_size, max_transitions, state_dim]
 	    seq_lengths: [batch_size] - number of valid transitions in each sample
 	"""
 	h_t_list = [item[0] for item in batch]
 	a_t_list = [item[1] for item in batch]
 	h_t_next_list = [item[2] for item in batch]
-	seq_lengths = torch.tensor([item[3] for item in batch], dtype=torch.long)
+	state_t_list = [item[3] for item in batch]
+	state_t_next_list = [item[4] for item in batch]
+	seq_lengths = torch.tensor([item[5] for item in batch], dtype=torch.long)
 
 	# Pad sequences
 	h_t_padded = pad_sequence(h_t_list, batch_first=True, padding_value=0.0)
@@ -360,11 +438,24 @@ def collate_forward_dynamics(batch):
 	h_t_next_padded = pad_sequence(
 		h_t_next_list, batch_first=True, padding_value=0.0
 	)
+	state_t_padded = pad_sequence(
+		state_t_list, batch_first=True, padding_value=0.0
+	)
+	state_t_next_padded = pad_sequence(
+		state_t_next_list, batch_first=True, padding_value=0.0
+	)
 
-	return h_t_padded, a_t_padded, h_t_next_padded, seq_lengths
+	return (
+		h_t_padded,
+		a_t_padded,
+		h_t_next_padded,
+		state_t_padded,
+		state_t_next_padded,
+		seq_lengths,
+	)
 
 
-def create_forward_dynamics_dataloader(
+def create_forward_dynamics_decoder_dataloader(
 	db_path: str,
 	id_model: torch.nn.Module,
 	device: str = "cuda",
@@ -375,7 +466,7 @@ def create_forward_dynamics_dataloader(
 	**dataset_kwargs,
 ) -> DataLoader:
 	"""
-	Create a DataLoader for forward dynamics training in latent space.
+	Create a DataLoader for forward dynamics + decoder training in latent space.
 
 	Args:
 	    db_path: Path to the SQLite database
@@ -385,12 +476,12 @@ def create_forward_dynamics_dataloader(
 	    batch_size: Batch size
 	    shuffle: Whether to shuffle
 	    num_workers: Number of worker processes (recommend 0 for CUDA models)
-	    **dataset_kwargs: Additional arguments for ForwardDynamicsDataset
+	    **dataset_kwargs: Additional arguments for ForwardDynamicsDecoderDataset
 
 	Returns:
 	    DataLoader instance
 	"""
-	dataset = ForwardDynamicsDataset(
+	dataset = ForwardDynamicsDecoderDataset(
 		db_path=db_path,
 		id_model=id_model,
 		device=device,
@@ -403,7 +494,7 @@ def create_forward_dynamics_dataloader(
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
-		collate_fn=collate_forward_dynamics,
+		collate_fn=collate_forward_dynamics_decoder,
 		pin_memory=False,
 	)
 

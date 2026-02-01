@@ -19,6 +19,7 @@ model.train()
 criterion = MSELoss()
 opt = Adam(model.parameters())
 
+
 @click.command()
 @click.option(
 	"--train_db", type=str, required=True, help="Path to training database"

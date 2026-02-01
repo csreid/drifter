@@ -24,8 +24,13 @@ def fit_batch(model, optimizer, criterion, batch):
 	print(f"{h_t_next.shape=}")
 	seqlens = seqlens.int()
 
+	batch_size = h_t.shape[0]
+
+	# Forward pass
 	optimizer.zero_grad()
 	predicted_next = model._simple_forward_dynamics(h_t, a_t)  # (B, T, 2)
+
+	# Compute loss
 	loss = criterion(predicted_next, h_t_next.detach())
 
 	# Backward pass
@@ -208,3 +213,4 @@ def main(
 
 if __name__ == "__main__":
 	main()
+

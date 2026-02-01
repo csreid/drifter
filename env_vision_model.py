@@ -6,7 +6,7 @@ from torch.nn import (
 	LSTM,
 	ModuleDict,
 	LeakyReLU,
-	Sequential
+	Sequential,
 )
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
@@ -38,16 +38,15 @@ def _get_output_shape(model, input_shape):
 	# Return shape without batch dimension
 	return tuple(output.shape[1:])
 
+
 class ForwardDynamics(Module):
 	def __init__(self, state_size, action_size, hidden_size):
 		super().__init__()
 
 		self.inp = Linear
 
-		self.output = Linear(
-			hidden_size,
-			state_size
-		)
+		self.output = Linear(hidden_size, state_size)
+
 
 class EnvModel(Module):
 	def __init__(self, hidden_size=512, pretrained_vision=False):
@@ -81,28 +80,21 @@ class EnvModel(Module):
 			}
 		)
 
-		action_size=2
+		action_size = 2
 
 		self._id_output_head = Linear(
 			hidden_size, action_size
 		)  # for 2-d action; steering and throttle/brake/reverse
 
 		self._fk_head = Sequential(
-			Linear(
-				hidden_size + action_size,
-				hidden_size
-			),
+			Linear(hidden_size + action_size, hidden_size),
 			LeakyReLU(),
-			Linear(
-				hidden_size,
-				hidden_size
-			)
+			Linear(hidden_size, hidden_size),
 		)
 
 	def _simple_forward_dynamics(self, h, a):
 		out = torch.cat([h, a], dim=2)
 		return self._fk_head(out)
-
 
 	def _get_hidden(self, imgs, seqlens):
 		batchsize, seqlen, C, H, W = imgs.shape
@@ -129,24 +121,27 @@ class EnvModel(Module):
 
 		return out
 
+	def get_state(self, imgs, seqlens):
+		h = self._get_hidden(imgs, seqlens)
+		outputs = {
+			key: head(h) for key, head in self._dynamics_output_heads.items()
+		}
+
+		as_tensor = torch.cat(list(outputs.values()), dim=-1)
+
+		return as_tensor, outputs
+
 	def inverse_dynamics(self, imgs, seqlens):
 		out = self._get_hidden(imgs, seqlens)
 		out = self._id_output_head(out)
 
 		return out
 
-#	def forward(self, imgs, seqlens):
-#		out = self._get_hidden(imgs, seqlens)
-#
-#		return {
-#			key: val(out) for key, val in self._dynamics_output_heads.items()
-#		}
-
 	def forward_dynamics(self, imgs, a_s, seqlens):
 		# Predict forward dynamics *one step* into the
 		# future based on a sequence of past images
 
-		out = self._get_hidden(imgs, seqlens) # out shape: [batch, sequence, N]
+		out = self._get_hidden(imgs, seqlens)  # out shape: [batch, sequence, N]
 		out = torch.cat([out, a_s], dim=2)
 		out = self._fk_head(out)
 

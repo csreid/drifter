@@ -235,7 +235,6 @@ class RCCarSimulation:
 				"rear_right_suspension",
 			]
 
-
 		front_wheels = ["front_left_wheel", "front_right_wheel"]
 		rear_wheels = ["rear_left_wheel", "rear_right_wheel"]
 
