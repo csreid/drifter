@@ -129,7 +129,7 @@ class EnvModel(Module):
 
 	def decode_state(self, h_t, seqlens):
 		outputs = {
-			key: head for key, head in self._dynamics_output_heads.items()
+			key: head(h_t) for key, head in self._dynamics_output_heads.items()
 		}
 
 		as_tensor = torch.cat(list(outputs.values()), dim=-1)
