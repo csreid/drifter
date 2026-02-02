@@ -38,16 +38,6 @@ def _get_output_shape(model, input_shape):
 	# Return shape without batch dimension
 	return tuple(output.shape[1:])
 
-
-class ForwardDynamics(Module):
-	def __init__(self, state_size, action_size, hidden_size):
-		super().__init__()
-
-		self.inp = Linear
-
-		self.output = Linear(hidden_size, state_size)
-
-
 class EnvModel(Module):
 	def __init__(self, hidden_size=512, pretrained_vision=False):
 		super().__init__()
@@ -72,11 +62,11 @@ class EnvModel(Module):
 
 		self._dynamics_output_heads = ModuleDict(
 			{
-				"velocity": Linear(hidden_size, 3),
 				"position": Linear(hidden_size, 3),
+				"local_goal": Linear(hidden_size, 3),
+				"velocity": Linear(hidden_size, 3),
+				"is_flipped": Linear(hidden_size, 1),
 				"orientation": Linear(hidden_size, 4),
-				"goal_position": Linear(hidden_size, 3),
-				"local_goal_position": Linear(hidden_size, 3),
 			}
 		)
 
@@ -123,6 +113,21 @@ class EnvModel(Module):
 
 	def get_state(self, imgs, seqlens):
 		h = self._get_hidden(imgs, seqlens)
+		return self.decode_state(h, seqlens)
+
+	def inverse_dynamics(self, imgs, seqlens):
+		out = self._get_hidden(imgs, seqlens)
+		out = self._id_output_head(out)
+
+		return out
+
+	def forward_dynamics_from_hidden(self, h_t, a_t, seqlens)
+		out = torch.cat([out, a_s], dim=2)
+		out = self._fk_head(out)
+
+		return out
+
+	def decode_state(self, h_t, seqlens):
 		outputs = {
 			key: head(h) for key, head in self._dynamics_output_heads.items()
 		}
@@ -131,18 +136,11 @@ class EnvModel(Module):
 
 		return as_tensor, outputs
 
-	def inverse_dynamics(self, imgs, seqlens):
-		out = self._get_hidden(imgs, seqlens)
-		out = self._id_output_head(out)
-
-		return out
-
 	def forward_dynamics(self, imgs, a_s, seqlens):
 		# Predict forward dynamics *one step* into the
 		# future based on a sequence of past images
 
 		out = self._get_hidden(imgs, seqlens)  # out shape: [batch, sequence, N]
-		out = torch.cat([out, a_s], dim=2)
-		out = self._fk_head(out)
+		out = self.forward_dynamics_from_hidden(out, a_t, seqlens)
 
 		return out
