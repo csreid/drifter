@@ -16,7 +16,7 @@ from pathlib import Path
 from tqdm import tqdm
 from typing import Tuple, List
 import pickle
-
+from env_vision_model import EnvModel
 
 def decompress_image(
 	blob: bytes, shape: Tuple[int, int, int], dtype: str
@@ -393,7 +393,9 @@ def main(
 	"""
 
 	click.echo(f"Loading inverse dynamics model from {id_model}...")
-	model = torch.load(id_model, map_location=device)
+	model_sd = torch.load(id_model, map_location=device)['state_dict']
+	model = EnvModel()
+	model.load_state_dict(model_sd)
 	model.eval()
 	model.to(device)
 
