@@ -121,15 +121,15 @@ class EnvModel(Module):
 
 		return out
 
-	def forward_dynamics_from_hidden(self, h_t, a_t, seqlens)
-		out = torch.cat([out, a_s], dim=2)
+	def forward_dynamics_from_hidden(self, h_t, a_t, seqlens):
+		out = torch.cat([h_t, a_t], dim=2)
 		out = self._fk_head(out)
 
 		return out
 
 	def decode_state(self, h_t, seqlens):
 		outputs = {
-			key: head(h) for key, head in self._dynamics_output_heads.items()
+			key: head for key, head in self._dynamics_output_heads.items()
 		}
 
 		as_tensor = torch.cat(list(outputs.values()), dim=-1)
@@ -141,6 +141,6 @@ class EnvModel(Module):
 		# future based on a sequence of past images
 
 		out = self._get_hidden(imgs, seqlens)  # out shape: [batch, sequence, N]
-		out = self.forward_dynamics_from_hidden(out, a_t, seqlens)
+		out = self.forward_dynamics_from_hidden(out, a_s, seqlens)
 
 		return out
