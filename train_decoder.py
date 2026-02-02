@@ -30,7 +30,7 @@ def fit_batch(model, optimizer, criterion, batch, device):
 	# - decode_state(h_t) -> (state_pred, outputs_dict)
 	h_t_next_pred = model.forward_dynamics_from_hidden(h_t, a_t, 0)
 	state_pred, _ = model.decode_state(h_t, 0)
-	state_next_pred, _ = model.decode_state(h_t_next)
+	state_next_pred, _ = model.decode_state(h_t_next, 0)
 
 	# Compute losses
 	# Forward dynamics loss: predict next hidden state
@@ -136,7 +136,7 @@ def validate_epoch(model, dataloader, criterion, device, epoch, writer):
 			# Forward pass
 			h_t_next_pred = model.forward_dynamics_from_hidden(h_t, a_t, 0)
 			state_pred, _ = model.decode_state(h_t, 0)
-			state_next_pred, _ = model.decode_state(h_t_next)
+			state_next_pred, _ = model.decode_state(h_t_next, 0)
 
 			# Compute losses
 			fd_loss = criterion(h_t_next_pred, h_t_next)
