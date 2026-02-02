@@ -1,22 +1,21 @@
 import torch
 import torch.nn as nn
 from torch.optim import Adam
+from torch.utils.tensorboard import SummaryWriter
 import click
 from pathlib import Path
 from tqdm import tqdm
 import numpy as np
+from datetime import datetime
 
 from inverse_dynamics import create_inverse_dynamics_dataloaders
 from env_vision_model import EnvModel
 import matplotlib.pyplot as plt
 
-import mlflow
 
-mlflow.enable_system_metrics_logging()
-mlflow.set_tracking_uri("http://localhost:6006")
-
-
-def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
+def train_epoch(
+	model, dataloader, optimizer, criterion, device, epoch, writer, global_step
+):
 	"""Train for one epoch."""
 	model.train()
 
@@ -55,6 +54,10 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 		total_loss += loss.item() * batch_size
 		total_samples += batch_size
 
+		# Log to tensorboard
+		writer.add_scalar("train_batch/loss", loss.item(), global_step)
+		global_step += 1
+
 		# Update progress bar
 		pbar.set_postfix(
 			{
@@ -64,10 +67,10 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 		)
 
 	avg_loss = total_loss / total_samples
-	return avg_loss
+	return avg_loss, global_step
 
 
-def validate(model, dataloader, criterion, device):
+def validate(model, dataloader, criterion, device, epoch, writer):
 	"""Validate the model."""
 	model.eval()
 
@@ -118,6 +121,11 @@ def validate(model, dataloader, criterion, device):
 		"steering_mae": np.mean(steering_errors),
 		"throttle_mae": np.mean(throttle_errors),
 	}
+
+	# Log to tensorboard
+	writer.add_scalar("val/loss", metrics["validation_loss"], epoch)
+	writer.add_scalar("val/steering_mae", metrics["steering_mae"], epoch)
+	writer.add_scalar("val/throttle_mae", metrics["throttle_mae"], epoch)
 
 	return metrics
 
@@ -203,6 +211,7 @@ def plot_predictions_to_tensorboard(
 		plt.tight_layout()
 
 		# Log to tensorboard
+		writer.add_figure("predictions", fig, global_step)
 		plt.close(fig)
 
 	model.train()
@@ -253,6 +262,12 @@ def plot_predictions_to_tensorboard(
 	help="Directory to save outputs",
 )
 @click.option(
+	"--log_dir",
+	type=str,
+	default="./runs/inverse_dynamics",
+	help="Directory for tensorboard logs",
+)
+@click.option(
 	"--save_every",
 	type=int,
 	default=10,
@@ -286,6 +301,7 @@ def main(
 	epochs,
 	num_workers,
 	output_dir,
+	log_dir,
 	save_every,
 	val_every,
 	val_frac,
@@ -337,70 +353,86 @@ def main(
 	# Training loop
 	best_val_loss = float("inf")
 
-	# sample_seq = next(iter(train_loader))
-	# writer.add_video("sample", sample_seq[0], 0)
+	# Setup tensorboard
+	timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+	log_path = Path(log_dir) / timestamp
+	writer = SummaryWriter(log_dir=log_path)
+	print(f"Tensorboard logs: {log_path}")
 
-	params = {
-		"epochs": epochs,
-		"dataset_size": len(train_loader),
-		"batch_size": batch_size,
-		"sequence_length": sequence_length,
-		"hidden_size": hidden_size,
-	}
+	# Get a sample for visualization
+	sample_seq = next(iter(train_loader))
 
-	with mlflow.start_run():
-		mlflow.log_params(params)
+	# Track global step for batch-level logging
+	global_step = 0
 
-		for epoch in range(epochs):
-			# Train
-			train_loss = train_epoch(
-				model, train_loader, optimizer, criterion, device, epoch
+	for epoch in range(epochs):
+		# Train
+		train_loss, global_step = train_epoch(
+			model,
+			train_loader,
+			optimizer,
+			criterion,
+			device,
+			epoch,
+			writer,
+			global_step,
+		)
+
+		# Log epoch metrics
+		writer.add_scalar("train_epoch/loss", train_loss, epoch)
+		print(f"Epoch {epoch}: train_loss={train_loss:.4f}")
+
+		# Validate
+		if val_loader and epoch % val_every == 0:
+			val_metrics = validate(
+				model, val_loader, criterion, device, epoch, writer
+			)
+			print(f"  Val Loss: {val_metrics['validation_loss']:.4f}")
+			print(f"  Val Steering MAE: {val_metrics['steering_mae']:.4f}")
+			print(f"  Val Throttle MAE: {val_metrics['throttle_mae']:.4f}")
+
+			# Plot predictions
+			plot_predictions_to_tensorboard(
+				model, sample_seq, writer, epoch, device
 			)
 
-			mlflow.log_metrics(
+			# Save best model
+			if val_metrics["validation_loss"] < best_val_loss:
+				best_val_loss = val_metrics["validation_loss"]
+				best_path = output_dir / "best_model.pth"
+				torch.save(
+					{
+						"epoch": epoch,
+						"model_state_dict": model.state_dict(),
+						"optimizer_state_dict": optimizer.state_dict(),
+						"val_loss": best_val_loss,
+					},
+					best_path,
+				)
+				print(f"  💾 Saved best model (val_loss: {best_val_loss:.4f})")
+
+		# Save checkpoint
+		if epoch % save_every == 0:
+			checkpoint_path = output_dir / f"checkpoint_epoch_{epoch:04d}.pth"
+			torch.save(
 				{
+					"epoch": epoch,
+					"model_state_dict": model.state_dict(),
+					"optimizer_state_dict": optimizer.state_dict(),
 					"train_loss": train_loss,
 				},
-				step=epoch,
+				checkpoint_path,
 			)
 
-			# Validate
-			if val_loader and epoch % val_every == 0:
-				val_metrics = validate(model, val_loader, criterion, device)
-				print(f"Val Loss: {val_metrics['validation_loss']:.4f}")
-				print(f"Val Steering MAE: {val_metrics['steering_mae']:.4f}")
-				print(f"Val Throttle MAE: {val_metrics['throttle_mae']:.4f}")
+	# Save final model
+	final_path = output_dir / "final_model.pth"
+	torch.save(model, final_path)
 
-				mlflow.log_metrics(val_metrics, step=epoch)
-
-				# Save best model
-				if val_metrics["validation_loss"] < best_val_loss:
-					best_val_loss = val_metrics["validation_loss"]
-					model_info = mlflow.pytorch.log_model(
-						pytorch_model=model,
-						name=f"best_id_model_epoch{epoch}",
-						step=epoch,
-					)
-					mlflow.log_metric(
-						key="validation_loss",
-						value=val_metrics["validation_loss"],
-						step=epoch,
-						model_id=model_info.model_id,
-					)
-
-			# Save checkpoint
-			if epoch % save_every == 0:
-				model_info = mlflow.pytorch.log_model(
-					model, name="id_model_checkpoint", step=epoch
-				)
-				mlflow.log_metric(
-					key="validation_loss",
-					value=val_metrics["validation_loss"],
-					step=epoch,
-					model_id=model_info.model_id,
-				)
-
+	writer.close()
 	print("\nTraining complete!")
+	print(f"  Best val loss: {best_val_loss:.4f}")
+	print(f"  Checkpoints saved to: {output_dir}")
+	print(f"  Tensorboard logs: {log_path}")
 
 
 if __name__ == "__main__":
