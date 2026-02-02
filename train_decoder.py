@@ -6,6 +6,7 @@ from tqdm import tqdm
 import click
 from pathlib import Path
 from datetime import datetime
+from env_vision_model import EnvModel
 
 from precomputed_dataloader import create_precomputed_dataloader
 
@@ -321,7 +322,8 @@ def main(
 
 	# Load model
 	click.echo(f"Loading model from {model}...")
-	net = torch.load(model, map_location=device)
+	net = EnvModel()
+	net.load_state_dict(torch.load(model, map_location=device)['model_state_dict'])
 	net.to(device)
 
 	# Setup optimizer and criterion
