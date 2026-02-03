@@ -227,8 +227,8 @@ def process_sequence(
 		[
 			rows[0][15],
 			rows[0][16],
-			rows[0][17]
-			rows[0][18]
+			rows[0][17],
+			rows[0][18],
 		]
 	)
 
@@ -250,7 +250,7 @@ def process_sequence(
 		actions.append([action_0, action_1])
 
 		# Parse state
-		state = parse_state(row, initial_position)
+		state = parse_state(row, initial_position, initial_orientation)
 		states.append(state)
 
 	# Convert to tensors
