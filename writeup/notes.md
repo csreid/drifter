@@ -2,51 +2,36 @@
 title: "Updates & Notes"
 author: "Cameron"
 date: \today
+bibliography: citations.bib
 ---
 
-# Inverse Dynamics → Forward Kinematics Pipeline
+# Why Inverse Dynamics → Forward Kinematics Pipeline
 
-**Idea**: Learn control representations instead
-
-1. Train ID model: $(I_t, I_{t+1}) \to (v_L, v_R)$ [supervised]
-2. Apply FK: $(v_L, v_R) \to (\dot{x}_{body}, \dot{\theta}_{body})$ [deterministic]
-3. Integrate for pose predictions
-
-Does this preserve enough information?
+Learning ID in latent space is (probably) easier than learning FK
 
 * Invertibility $\rightarrow$ bijective
 * bijective $\rightarrow$ *no* information loss
 	* inputs can be reconstructed from outputs
 
-# Bijectivity Analysis (differential drive example)
+* Inspired by [@brandfonbrener2023inverse]
 
-(in the body frame)
+# Bounds on FK Errors
 
-$$\begin{aligned}
-\dot{x}_{body} &= v = \frac{v_L + v_R}{2} \\
-\dot{y}_{body} &= 0 \\
-\dot{\theta} &= \omega = \frac{v_R - v_L}{L}
-\end{aligned}$$
+* Function of ID errors and Lipschitz of FK?
 
-# Bijectivity Analysis: Bicycle Model
+# Total Pipeline:
 
-**Bicycle model dynamics** (body frame):
+* Learn ID (good)
+* Get embeddings from ID (good)
+* Train FK on embeddings (good)
+* Train decoder on embeddings (?)
+	* Currently, decoder has kind of high loss, but only with an early-stopped ID embedding
 
-$$\begin{aligned}
-\dot{x}_{body} &= v \\
-\dot{y}_{body} &= 0\\
-\dot{\theta} &= \frac{v \tan(\delta)}{L}
-\end{aligned}$$
+# Upcoming
 
-where $v$ is velocity, $\delta$ is steering angle, $L$ is wheelbase.
+* Better exploration policy
+	* Random? Brownian noise in action space?
+* Planning
 
-**Controls**: $(v, \delta)$ or $(\dot{v}, \delta)$ depending on whether velocity is controlled directly
-
-# **Inverse dynamics** (body frame):
-
-$$\begin{aligned}
-v &= \dot{x}_{body} \\
-\delta &= \arctan\left(\frac{L \dot{\theta}}{\dot{x}_{body}}\right)
-\end{aligned}$$
-
-**Bijectivity**: $(\dot{x}_{body}, \dot{\theta}) \leftrightarrow (v, \delta)$
+# WCP
+* ~ halfway there

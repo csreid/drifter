@@ -63,7 +63,7 @@ class EnvModel(Module):
 		self._dynamics_output_heads = ModuleDict(
 			{
 				"position": Linear(hidden_size, 3),
-				"local_goal": Linear(hidden_size, 3),
+				#"local_goal": Linear(hidden_size, 3),
 				"velocity": Linear(hidden_size, 3),
 				"is_flipped": Linear(hidden_size, 1),
 				"orientation": Linear(hidden_size, 4),
