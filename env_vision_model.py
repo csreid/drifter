@@ -63,7 +63,7 @@ class EnvModel(Module):
 		self._dynamics_output_heads = ModuleDict(
 			{
 				"position": Linear(hidden_size, 3),
-				#"local_goal": Linear(hidden_size, 3),
+				"local_goal": Linear(hidden_size, 3),
 				"velocity": Linear(hidden_size, 3),
 				"is_flipped": Linear(hidden_size, 1),
 				"orientation": Linear(hidden_size, 4),
@@ -129,7 +129,7 @@ class EnvModel(Module):
 
 	def decode_state(self, h_t, seqlens):
 		outputs = {
-			key: head(h_t) for key, head in self._dynamics_output_heads.items()
+			key: head(h_t) for key, head in self._dynamics_output_heads.items() if key != 'local_goal'
 		}
 
 		as_tensor = torch.cat(list(outputs.values()), dim=-1)

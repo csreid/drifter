@@ -89,7 +89,10 @@ class PrecomputedEmbeddingDataset(Dataset):
 		a_t = torch.from_numpy(pickle.loads(a_t_blob))
 		h_t_next = torch.from_numpy(pickle.loads(h_t_next_blob))
 		state_t = torch.from_numpy(pickle.loads(state_t_blob))
+		state_t = torch.cat([state_t[..., :3], state_t[..., 6:]], dim=-1)
+
 		state_t_next = torch.from_numpy(pickle.loads(state_t_next_blob))
+		state_t_next = torch.cat([state_t_next[..., :3], state_t_next[..., 6:]], dim=-1)
 
 		return h_t, a_t, h_t_next, state_t, state_t_next, num_transitions
 
