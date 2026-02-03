@@ -18,6 +18,7 @@ from typing import Tuple, List
 import pickle
 from env_vision_model import EnvModel
 
+
 def decompress_image(
 	blob: bytes, shape: Tuple[int, int, int], dtype: str
 ) -> np.ndarray:
@@ -26,6 +27,35 @@ def decompress_image(
 	dtype_np = np.dtype(dtype)
 	img = np.frombuffer(decompressed, dtype=dtype_np)
 	return img.reshape(shape)
+
+
+def orientation_relative(quat, initial_quat):
+	"""
+	Compute relative orientation between two quaternions.
+
+	Args:
+			quat: Current orientation as [w, x, y, z]
+			initial_quat: Initial orientation as [w, x, y, z]
+
+	Returns:
+			Relative quaternion such that initial orientation becomes [1, 0, 0, 0]
+	"""
+	# Quaternion inverse: for unit quaternions, it's the conjugate [w, -x, -y, -z]
+	w0, x0, y0, z0 = initial_quat
+	initial_inv = np.array([w0, -x0, -y0, -z0])
+
+	# Quaternion multiplication: initial_inv * quat
+	w1, x1, y1, z1 = initial_inv
+	w2, x2, y2, z2 = quat
+
+	return np.array(
+		[
+			w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,  # w
+			w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,  # x
+			w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,  # y
+			w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,  # z
+		]
+	)
 
 
 def fetch_sequence(
@@ -72,7 +102,7 @@ def fetch_sequence(
 	return cursor.fetchall()
 
 
-def parse_state(row: Tuple, initial_position: np.ndarray) -> np.ndarray:
+def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -> np.ndarray:
 	"""
 	Parse state variables from a database row.
 
@@ -107,7 +137,8 @@ def parse_state(row: Tuple, initial_position: np.ndarray) -> np.ndarray:
 	position = np.array([pos_x, pos_y, pos_z]) - initial_position
 	local_goal = np.array([local_goal_x, local_goal_y, local_goal_z])
 	velocity = np.array([vel_x, vel_y, vel_z])
-	orientation = np.array([orient_0, orient_1, orient_2, orient_3])
+	org_orientation = np.array([orient_0, orient_1, orient_2, orient_3])
+	orientation = orientation_relative(org_orientation, initial_orientation)
 
 	# Concatenate: [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
 	state = np.concatenate(
@@ -192,6 +223,14 @@ def process_sequence(
 
 	# Get initial position
 	initial_position = np.array([rows[0][7], rows[0][8], rows[0][9]])
+	initial_orientation = np.array(
+		[
+			rows[0][15],
+			rows[0][16],
+			rows[0][17]
+			rows[0][18]
+		]
+	)
 
 	# Parse images, actions, and states
 	images = []
@@ -390,7 +429,7 @@ def main(
 	"""
 
 	click.echo(f"Loading inverse dynamics model from {id_model}...")
-	model_sd = torch.load(id_model, map_location=device)['model_state_dict']
+	model_sd = torch.load(id_model, map_location=device)["model_state_dict"]
 	model = EnvModel()
 	model.load_state_dict(model_sd)
 	model.eval()
