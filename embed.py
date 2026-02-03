@@ -107,7 +107,7 @@ def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -
 	Parse state variables from a database row.
 
 	Returns:
-	    state: [14] array with [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
+	    state: [11] array with [pos(3), vel(3), is_flipped(1), orient(4)]
 	"""
 	(
 		_camera_blob,
@@ -120,9 +120,6 @@ def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -
 		pos_x,
 		pos_y,
 		pos_z,
-		local_goal_x,
-		local_goal_y,
-		local_goal_z,
 		vel_x,
 		vel_y,
 		vel_z,
@@ -135,14 +132,13 @@ def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -
 
 	# Make position relative to start
 	position = np.array([pos_x, pos_y, pos_z]) - initial_position
-	local_goal = np.array([local_goal_x, local_goal_y, local_goal_z])
 	velocity = np.array([vel_x, vel_y, vel_z])
 	org_orientation = np.array([orient_0, orient_1, orient_2, orient_3])
 	orientation = orientation_relative(org_orientation, initial_orientation)
 
 	# Concatenate: [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
 	state = np.concatenate(
-		[position, local_goal, velocity, [is_flipped], orientation]
+		[position, velocity, [is_flipped], orientation]
 	)
 
 	return state
@@ -225,10 +221,10 @@ def process_sequence(
 	initial_position = np.array([rows[0][7], rows[0][8], rows[0][9]])
 	initial_orientation = np.array(
 		[
+			rows[0][13],
+			rows[0][14],
 			rows[0][15],
 			rows[0][16],
-			rows[0][17],
-			rows[0][18],
 		]
 	)
 
