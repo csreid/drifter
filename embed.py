@@ -404,6 +404,9 @@ def save_embedding(
 @click.option(
 	"--id-column", default="id", help="Name of the ID column (default: id)"
 )
+@click.option(
+	"--hidden_size", type=int, default=512, help="Hidden size for the model"
+)
 def main(
 	input_db,
 	output_db,

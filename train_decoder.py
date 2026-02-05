@@ -526,6 +526,9 @@ def save_checkpoint(
 	help="Log weight histograms every N epochs (default: 10)",
 )
 @click.option("--seed", default=42, type=int, help="Random seed (default: 42)")
+@click.option(
+	"--hidden_size", type=int, default=512, help="Hidden size for the model"
+)
 def main(
 	train_db,
 	val_db,
@@ -541,6 +544,7 @@ def main(
 	val_interval,
 	weight_log_interval,
 	seed,
+	hidden_size
 ):
 	"""
 	Train forward dynamics + decoder model.
@@ -576,7 +580,7 @@ def main(
 
 	# Load model
 	click.echo(f"Loading model from {model}...")
-	net = EnvModel()
+	net = EnvModel(hidden_size)
 	net.load_state_dict(
 		torch.load(model, map_location=device)["model_state_dict"]
 	)
