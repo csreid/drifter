@@ -35,44 +35,34 @@ def fit_batch(model, optimizer, criterion, batch, device):
 	decoder_loss_t_next = criterion(state_next_pred, state_t_next)
 	decoder_loss = decoder_loss_t + decoder_loss_t_next
 
-	# Compute per-component decoder losses (state has 14 dims: pos(3), local_goal(3), vel(3), flipped(1), orient(4))
+	# Compute per-component decoder losses (state has 14 dims: pos(3), vel(3), flipped(1), orient(4))
 	# Remove local_goal from comparison
-	state_t_no_goal = torch.cat([state_t[..., :3], state_t[..., 6:]], dim=-1)
-	state_t_next_no_goal = torch.cat(
-		[state_t_next[..., :3], state_t_next[..., 6:]], dim=-1
-	)
-	state_pred_no_goal = torch.cat(
-		[state_pred[..., :3], state_pred[..., 6:]], dim=-1
-	)
-	state_next_pred_no_goal = torch.cat(
-		[state_next_pred[..., :3], state_next_pred[..., 6:]], dim=-1
-	)
-
+t 
 	# Component losses (without local_goal)
 	pos_loss_t = criterion(
-		state_pred_no_goal[..., :3], state_t_no_goal[..., :3]
+		state_pred[..., :3], state_t[..., :3]
 	)
 	vel_loss_t = criterion(
-		state_pred_no_goal[..., 3:6], state_t_no_goal[..., 3:6]
+		state_pred[..., 3:6], state_t[..., 3:6]
 	)
 	flipped_loss_t = criterion(
-		state_pred_no_goal[..., 6:7], state_t_no_goal[..., 6:7]
+		state_pred[..., 6:7], state_t[..., 6:7]
 	)
 	orient_loss_t = criterion(
-		state_pred_no_goal[..., 7:], state_t_no_goal[..., 7:]
+		state_pred[..., 7:], state_t[..., 7:]
 	)
 
 	pos_loss_t_next = criterion(
-		state_next_pred_no_goal[..., :3], state_t_next_no_goal[..., :3]
+		state_next_pred[..., :3], state_t_next[..., :3]
 	)
 	vel_loss_t_next = criterion(
-		state_next_pred_no_goal[..., 3:6], state_t_next_no_goal[..., 3:6]
+		state_next_pred[..., 3:6], state_t_next[..., 3:6]
 	)
 	flipped_loss_t_next = criterion(
-		state_next_pred_no_goal[..., 6:7], state_t_next_no_goal[..., 6:7]
+		state_next_pred[..., 6:7], state_t_next[..., 6:7]
 	)
 	orient_loss_t_next = criterion(
-		state_next_pred_no_goal[..., 7:], state_t_next_no_goal[..., 7:]
+		state_next_pred[..., 7:], state_t_next[..., 7:]
 	)
 
 	# Total loss

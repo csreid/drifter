@@ -136,7 +136,7 @@ def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -
 	org_orientation = np.array([orient_0, orient_1, orient_2, orient_3])
 	orientation = orientation_relative(org_orientation, initial_orientation)
 
-	# Concatenate: [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
+	# Concatenate: [pos(3), vel(3), is_flipped(1), orient(4)]
 	state = np.concatenate(
 		[position, velocity, [is_flipped], orientation]
 	)
