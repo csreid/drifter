@@ -243,6 +243,8 @@ def create_drifter_dataloader(
 	"""
 	Create train and test DataLoaders for drifter sequential data.
 
+	Splits episodes between train and test to avoid data leakage.
+
 	Args:
 	    db_path: Path to SQLite database
 	    min_seq_len: Minimum sequence length
@@ -252,12 +254,12 @@ def create_drifter_dataloader(
 	    num_workers: Number of worker processes for data loading
 	    transform: Optional transform to apply to images
 	    seed: Random seed for reproducibility
-	    test_split: Fraction of data to use for testing (default 0.2)
+	    test_split: Fraction of episodes to use for testing (default 0.2)
 
 	Returns:
 	    Tuple of (train_dataloader, test_dataloader)
 	"""
-	# Create full dataset
+	# Create full dataset to get episode list
 	full_dataset = DrifterSequenceDataset(
 		db_path,
 		min_seq_len=min_seq_len,
@@ -267,18 +269,50 @@ def create_drifter_dataloader(
 	)
 
 	# Split episodes into train/test
-	total_episodes = len(full_dataset.episodes)
-	test_size = int(total_episodes * test_split)
-	train_size = total_episodes - test_size
+	episodes = full_dataset.episodes
+	total_episodes = len(episodes)
 
-	# Use torch's random_split which respects the seed
+	# Shuffle episodes for splitting
 	if seed is not None:
-		generator = torch.Generator().manual_seed(seed)
+		rng = np.random.RandomState(seed)
 	else:
-		generator = None
+		rng = np.random.RandomState()
 
-	train_dataset, test_dataset = torch.utils.data.random_split(
-		full_dataset, [train_size, test_size], generator=generator
+	episode_indices = np.arange(total_episodes)
+	rng.shuffle(episode_indices)
+
+	# Split indices
+	test_size = int(total_episodes * test_split)
+	test_episode_indices = set(episode_indices[:test_size])
+	train_episode_indices = set(episode_indices[test_size:])
+
+	print(f"Total episodes: {total_episodes}")
+	print(f"Train episodes: {len(train_episode_indices)}")
+	print(f"Test episodes: {len(test_episode_indices)}")
+
+	# Create datasets with filtered episodes
+	train_dataset = DrifterSequenceDataset(
+		db_path,
+		min_seq_len=min_seq_len,
+		max_seq_len=max_seq_len,
+		transform=transform,
+		seed=seed,
+	)
+	train_dataset.episodes = [episodes[i] for i in train_episode_indices]
+	train_dataset.num_sequences = sum(
+		max(1, ep["length"] - min_seq_len + 1) for ep in train_dataset.episodes
+	)
+
+	test_dataset = DrifterSequenceDataset(
+		db_path,
+		min_seq_len=min_seq_len,
+		max_seq_len=max_seq_len,
+		transform=transform,
+		seed=seed,
+	)
+	test_dataset.episodes = [episodes[i] for i in test_episode_indices]
+	test_dataset.num_sequences = sum(
+		max(1, ep["length"] - min_seq_len + 1) for ep in test_dataset.episodes
 	)
 
 	# Create dataloaders
