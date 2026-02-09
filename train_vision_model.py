@@ -17,6 +17,12 @@ model.train()
 criterion = MSELoss()
 opt = Adam(model.parameters())
 
+component_weights = {
+	"velocity": 10.,
+	"orientation": 1.,
+	"position": 1.,
+}
+
 
 @click.command()
 @click.option(
@@ -59,7 +65,7 @@ def main(train_db, epochs, batch_size, log_dir):
 			per_output_loss = {}
 			for key, value in pred_as_dict.items():
 				if key in states:
-					this_loss = criterion(value, states[key].to(dev))
+					this_loss = criterion(value, states[key].to(dev)) * component_weights[key]
 					per_output_loss[key] = this_loss
 					loss += this_loss
 
