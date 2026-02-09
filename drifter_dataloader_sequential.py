@@ -8,6 +8,48 @@ from sequential_dataset import (
 )
 
 
+def quaternion_to_rotation_matrix(q: np.ndarray) -> np.ndarray:
+	"""
+	Convert quaternion to rotation matrix.
+
+	Args:
+	    q: Quaternion [w, x, y, z] or [x, y, z, w] - check your convention!
+	        Assuming [w, x, y, z] format
+
+	Returns:
+	    3x3 rotation matrix
+	"""
+	w, x, y, z = q[0], q[1], q[2], q[3]
+
+	R = np.array(
+		[
+			[1 - 2 * (y**2 + z**2), 2 * (x * y - w * z), 2 * (x * z + w * y)],
+			[2 * (x * y + w * z), 1 - 2 * (x**2 + z**2), 2 * (y * z - w * x)],
+			[2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x**2 + y**2)],
+		]
+	)
+
+	return R
+
+
+def world_to_body_frame(
+	orientation_quat: np.ndarray, world_vector: np.ndarray
+) -> np.ndarray:
+	"""
+	Transform a world-frame vector to body-frame.
+
+	Args:
+	    orientation_quat: Current orientation as quaternion [4]
+	    world_vector: Vector in world frame to transform [3]
+
+	Returns:
+	    Vector in body frame [3]
+	"""
+	R = quaternion_to_rotation_matrix(orientation_quat)
+	# R transforms body to world, so R.T transforms world to body
+	return R.T @ world_vector
+
+
 class DrifterSequenceDataset(SequentialDatabaseDataset):
 	"""
 	PyTorch Dataset for loading sequences of drifter simulation data for LSTM/RNN training.
@@ -85,12 +127,19 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 		"""
 		Parse database rows into camera images and state dictionary.
 
+		Converts position, velocity to body-relative frame using the vehicle's orientation.
+
 		Args:
 		    rows: List of database row tuples
 
 		Returns:
 		    images: Sequence of camera images [seq_len, C, H, W]
 		    state_dict: Dictionary of state sequences [seq_len, feature_dim]
+		                - position: relative position in body frame
+		                - orientation: kept as quaternion (represents body orientation)
+		                - velocity: velocity in body frame
+		                - local_goal: already in body frame
+		                - goal: goal in body frame
 		    seq_len: Actual length of the sequence
 		"""
 		seq_len = len(rows)
@@ -102,6 +151,12 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 		local_goals = []
 		goals = []
 
+		# Use first frame as reference for relative positioning
+		first_frame = rows[0]
+		initial_position = np.array(
+			[first_frame[0], first_frame[1], first_frame[2]]
+		)
+
 		for row in rows:
 			# Parse state components
 			position = np.array([row[0], row[1], row[2]], dtype=np.float32)
@@ -112,11 +167,22 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 			local_goal = np.array([row[10], row[11], row[12]], dtype=np.float32)
 			goal = np.array([row[13], row[14], row[15]], dtype=np.float32)
 
-			positions.append(position)
-			orientations.append(orientation)
-			velocities.append(velocity)
-			local_goals.append(local_goal)
-			goals.append(goal)
+			# Convert position to body-relative frame
+			# (relative to initial position, then rotated to body frame)
+			relative_position = position - initial_position
+			position_body = world_to_body_frame(orientation, relative_position)
+
+			# Convert velocity to body-relative frame
+			velocity_body = world_to_body_frame(orientation, velocity)
+
+			# Convert goal to body-relative frame
+			goal_body = world_to_body_frame(orientation, goal)
+
+			positions.append(position_body)
+			orientations.append(orientation)  # Keep as quaternion
+			velocities.append(velocity_body)
+			local_goals.append(local_goal)  # Already in body frame
+			goals.append(goal_body)
 
 			# Decompress and reshape camera image
 			compressed_img = row[16]
