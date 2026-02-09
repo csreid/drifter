@@ -211,11 +211,19 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 		images = torch.stack(images_list)  # [seq_len, C, H, W]
 
 		state_dict = {
-			"position": torch.from_numpy(np.stack(positions)),
-			"orientation": torch.from_numpy(np.stack(orientations)),
-			"velocity": torch.from_numpy(np.stack(velocities)),
-			"local_goal": torch.from_numpy(np.stack(local_goals)),
-			"goal": torch.from_numpy(np.stack(goals)),
+			"position": torch.from_numpy(
+				np.stack(positions).astype(np.float32)
+			),
+			"orientation": torch.from_numpy(
+				np.stack(orientations).astype(np.float32)
+			),
+			"velocity": torch.from_numpy(
+				np.stack(velocities).astype(np.float32)
+			),
+			"local_goal": torch.from_numpy(
+				np.stack(local_goals).astype(np.float32)
+			),
+			"goal": torch.from_numpy(np.stack(goals).astype(np.float32)),
 		}
 
 		return images, state_dict, seq_len
