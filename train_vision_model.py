@@ -70,7 +70,7 @@ def main(train_db, epochs, batch_size, log_dir):
 						* component_weights[key]
 					)
 					per_output_loss[key] = this_loss
-					loss += this_loss
+					loss += this_loss.float()
 
 			# Log per-output losses
 			for key, value in per_output_loss.items():
