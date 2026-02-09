@@ -86,7 +86,7 @@ class EnvModel(Module):
 		out = torch.cat([h, a], dim=2)
 		return self._fk_head(out)
 
-	def _get_hidden(self, imgs, seqlens):
+	def _get_hidden(imgs, seqlens):
 		batchsize, seqlen, C, H, W = imgs.shape
 
 		out = imgs.view(seqlen * batchsize, C, H, W)
