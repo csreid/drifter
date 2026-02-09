@@ -238,9 +238,10 @@ def create_drifter_dataloader(
 	num_workers: int = 4,
 	transform=None,
 	seed: int = None,
+	test_split: float = 0.2,
 ):
 	"""
-	Create a DataLoader for drifter sequential data.
+	Create train and test DataLoaders for drifter sequential data.
 
 	Args:
 	    db_path: Path to SQLite database
@@ -251,11 +252,13 @@ def create_drifter_dataloader(
 	    num_workers: Number of worker processes for data loading
 	    transform: Optional transform to apply to images
 	    seed: Random seed for reproducibility
+	    test_split: Fraction of data to use for testing (default 0.2)
 
 	Returns:
-	    DataLoader instance
+	    Tuple of (train_dataloader, test_dataloader)
 	"""
-	dataset = DrifterSequenceDataset(
+	# Create full dataset
+	full_dataset = DrifterSequenceDataset(
 		db_path,
 		min_seq_len=min_seq_len,
 		max_seq_len=max_seq_len,
@@ -263,35 +266,62 @@ def create_drifter_dataloader(
 		seed=seed,
 	)
 
-	return create_sequential_dataloader(
-		dataset,
+	# Split episodes into train/test
+	total_episodes = len(full_dataset.episodes)
+	test_size = int(total_episodes * test_split)
+	train_size = total_episodes - test_size
+
+	# Use torch's random_split which respects the seed
+	if seed is not None:
+		generator = torch.Generator().manual_seed(seed)
+	else:
+		generator = None
+
+	train_dataset, test_dataset = torch.utils.data.random_split(
+		full_dataset, [train_size, test_size], generator=generator
+	)
+
+	# Create dataloaders
+	train_dataloader = create_sequential_dataloader(
+		train_dataset,
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
 	)
 
+	test_dataloader = create_sequential_dataloader(
+		test_dataset,
+		batch_size=batch_size,
+		shuffle=False,  # Don't shuffle test set
+		num_workers=num_workers,
+	)
+
+	return train_dataloader, test_dataloader
+
 
 # Example usage
 if __name__ == "__main__":
-	# Create sequence dataloader
+	# Create train and test dataloaders
 	db_path = "drifter_data.db"
-	dataloader = create_drifter_dataloader(
+	train_dataloader, test_dataloader = create_drifter_dataloader(
 		db_path,
 		min_seq_len=10,
 		max_seq_len=30,
 		batch_size=8,
 		shuffle=True,
 		num_workers=0,  # Set to 0 for debugging
+		test_split=0.2,
 	)
 
-	# Test the dataloader
-	print(f"Dataset size: {len(dataloader.dataset)}")
-	print(f"Number of episodes: {len(dataloader.dataset.episodes)}")
-	print(f"Number of batches: {len(dataloader)}")
+	# Test the dataloaders
+	print(f"Train dataset size: {len(train_dataloader.dataset)}")
+	print(f"Test dataset size: {len(test_dataloader.dataset)}")
+	print(f"Train batches: {len(train_dataloader)}")
+	print(f"Test batches: {len(test_dataloader)}")
 
-	# Get a single batch
-	for images, states, seq_lengths in dataloader:
-		print("\nBatch shapes:")
+	# Get a single batch from train set
+	for images, states, seq_lengths in train_dataloader:
+		print("\nTrain batch shapes:")
 		print(f"  Images: {images.shape}")  # [batch, max_seq_len, C, H, W]
 		print(
 			f"  Position: {states['position'].shape}"
