@@ -102,7 +102,9 @@ def fetch_sequence(
 	return cursor.fetchall()
 
 
-def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -> np.ndarray:
+def parse_state(
+	row: Tuple, initial_position: np.ndarray, initial_orientation
+) -> np.ndarray:
 	"""
 	Parse state variables from a database row.
 
@@ -137,9 +139,7 @@ def parse_state(row: Tuple, initial_position: np.ndarray, initial_orientation) -
 	orientation = orientation_relative(org_orientation, initial_orientation)
 
 	# Concatenate: [pos(3), vel(3), is_flipped(1), orient(4)]
-	state = np.concatenate(
-		[position, velocity, [is_flipped], orientation]
-	)
+	state = np.concatenate([position, velocity, [is_flipped], orientation])
 
 	return state
 

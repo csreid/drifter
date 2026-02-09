@@ -7,9 +7,7 @@ from drifter_dataloader_sequential import (
 )
 from torch.nn import MSELoss
 from torch.optim import Adam
-import mlflow
-
-mlflow.set_tracking_uri("http://localhost:6006")
+from torch.utils.tensorboard import SummaryWriter
 
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 
@@ -30,7 +28,15 @@ opt = Adam(model.parameters())
 @click.option(
 	"--epochs", type=int, default=50, help="Number of epochs to train"
 )
-def main(train_db, epochs, batch_size):
+@click.option(
+	"--log_dir",
+	type=str,
+	default="runs/vision_model",
+	help="TensorBoard log directory",
+)
+def main(train_db, epochs, batch_size, log_dir):
+	writer = SummaryWriter(log_dir)
+
 	dataset = DrifterSequenceDataset(
 		db_path=train_db,
 		min_seq_len=40,
@@ -40,9 +46,6 @@ def main(train_db, epochs, batch_size):
 		dataset=dataset,
 		batch_size=batch_size,
 		shuffle=True,
-		num_workers=4,
-		min_seq_len=40,
-		max_seq_len=75,
 	)
 	for epoch in range(epochs):
 		for idx, (images, states, seq_lens) in tqdm(
@@ -50,22 +53,28 @@ def main(train_db, epochs, batch_size):
 		):
 			totalidx = epoch * len(dataloader) + idx
 
-			predictions = model(images.to(dev), seq_lens)
+			predictions, pred_as_dict = model(images.to(dev), seq_lens)
 
 			loss = 0.0
 			per_output_loss = {}
-			for key, value in predictions.items():
+			for key, value in pred_as_dict.items():
 				if key in states:
 					this_loss = criterion(value, states[key].to(dev))
 					per_output_loss[key] = this_loss
 					loss += this_loss
 
-			mlflow.log_metrics(per_output_loss, step=totalidx)
-			mlflow.log_metric("loss", loss, step=totalidx)
+			# Log per-output losses
+			for key, value in per_output_loss.items():
+				writer.add_scalar(f"loss/{key}", value.item(), totalidx)
+
+			# Log total loss
+			writer.add_scalar("loss/total", loss.item(), totalidx)
 
 			opt.zero_grad()
 			loss.backward()
 			opt.step()
+
+	writer.close()
 
 
 if __name__ == "__main__":

@@ -38,6 +38,7 @@ def _get_output_shape(model, input_shape):
 	# Return shape without batch dimension
 	return tuple(output.shape[1:])
 
+
 class EnvModel(Module):
 	def __init__(self, hidden_size=512, pretrained_vision=False):
 		super().__init__()
@@ -120,6 +121,12 @@ class EnvModel(Module):
 
 		return out
 
+	def forward(self, imgs, seqlens):
+		_h = self._get_hidden(self, imgs, seqlens)
+		out, as_dict = self.decode_state(_h, seqlens)
+
+		return out, as_dict
+
 	def forward_dynamics_from_hidden(self, h_t, a_t, seqlens):
 		out = torch.cat([h_t, a_t], dim=2)
 		out = self._fk_head(out)
@@ -128,7 +135,9 @@ class EnvModel(Module):
 
 	def decode_state(self, h_t, seqlens):
 		outputs = {
-			key: head(h_t) for key, head in self._dynamics_output_heads.items() if key != 'local_goal'
+			key: head(h_t)
+			for key, head in self._dynamics_output_heads.items()
+			if key != "local_goal"
 		}
 
 		as_tensor = torch.cat(list(outputs.values()), dim=-1)

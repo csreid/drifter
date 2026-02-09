@@ -7,6 +7,7 @@ from typing import Tuple, Dict, List, Optional
 import random
 import gzip
 
+
 class ForwardDynamicsDecoderDataset(Dataset):
 	"""
 	Dataset for training forward dynamics + decoder in latent space.
@@ -75,12 +76,11 @@ class ForwardDynamicsDecoderDataset(Dataset):
 
 		# Connect to database and build episode index
 		self.conn = sqlite3.connect(db_path, check_same_thread=False)
-		print(f'Building episode index...')
+		print(f"Building episode index...")
 		self._build_episode_index()
 
-		print(f'Presampling sequence windows...')
+		print(f"Presampling sequence windows...")
 		self._sample_all_sequences()
-
 
 		self._embedding_cache = {}
 
@@ -90,7 +90,9 @@ class ForwardDynamicsDecoderDataset(Dataset):
 			episode_idx = random.randint(0, len(self.episodes) - 1)
 			episode_info = self.episodes[episode_idx]
 			start_id, seq_len = self._sample_sequence_from_episode(episode_info)
-			self.sequences.append((episode_info['episode_id'], start_id, seq_len))
+			self.sequences.append(
+				(episode_info["episode_id"], start_id, seq_len)
+			)
 
 	def _build_episode_index(self):
 		"""Build an index of all episodes and their row ranges."""

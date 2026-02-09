@@ -51,7 +51,14 @@ class PrecomputedEmbeddingDataset(Dataset):
 
 	def __getitem__(
 		self, idx: int
-	) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int]:
+	) -> Tuple[
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		torch.Tensor,
+		int,
+	]:
 		"""
 		Get a pre-computed embedding by index.
 
@@ -80,9 +87,14 @@ class PrecomputedEmbeddingDataset(Dataset):
 		if row is None:
 			raise IndexError(f"Index {idx} out of range")
 
-		h_t_blob, a_t_blob, h_t_next_blob, state_t_blob, state_t_next_blob, num_transitions = (
-			row
-		)
+		(
+			h_t_blob,
+			a_t_blob,
+			h_t_next_blob,
+			state_t_blob,
+			state_t_next_blob,
+			num_transitions,
+		) = row
 
 		# Deserialize tensors
 		h_t = torch.from_numpy(pickle.loads(h_t_blob))
@@ -129,12 +141,21 @@ def collate_precomputed_embeddings(batch):
 	h_t_next_padded = pad_sequence(
 		h_t_next_list, batch_first=True, padding_value=0.0
 	)
-	state_t_padded = pad_sequence(state_t_list, batch_first=True, padding_value=0.0)
+	state_t_padded = pad_sequence(
+		state_t_list, batch_first=True, padding_value=0.0
+	)
 	state_t_next_padded = pad_sequence(
 		state_t_next_list, batch_first=True, padding_value=0.0
 	)
 
-	return h_t_padded, a_t_padded, h_t_next_padded, state_t_padded, state_t_next_padded, seq_lengths
+	return (
+		h_t_padded,
+		a_t_padded,
+		h_t_next_padded,
+		state_t_padded,
+		state_t_next_padded,
+		seq_lengths,
+	)
 
 
 def create_precomputed_dataloader(

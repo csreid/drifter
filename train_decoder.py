@@ -37,24 +37,14 @@ def fit_batch(model, optimizer, criterion, batch, device):
 
 	# Compute per-component decoder losses (state has 14 dims: pos(3), vel(3), flipped(1), orient(4))
 	# Remove local_goal from comparison
-t 
-	# Component losses (without local_goal)
-	pos_loss_t = criterion(
-		state_pred[..., :3], state_t[..., :3]
-	)
-	vel_loss_t = criterion(
-		state_pred[..., 3:6], state_t[..., 3:6]
-	)
-	flipped_loss_t = criterion(
-		state_pred[..., 6:7], state_t[..., 6:7]
-	)
-	orient_loss_t = criterion(
-		state_pred[..., 7:], state_t[..., 7:]
-	)
 
-	pos_loss_t_next = criterion(
-		state_next_pred[..., :3], state_t_next[..., :3]
-	)
+	# Component losses (without local_goal)
+	pos_loss_t = criterion(state_pred[..., :3], state_t[..., :3])
+	vel_loss_t = criterion(state_pred[..., 3:6], state_t[..., 3:6])
+	flipped_loss_t = criterion(state_pred[..., 6:7], state_t[..., 6:7])
+	orient_loss_t = criterion(state_pred[..., 7:], state_t[..., 7:])
+
+	pos_loss_t_next = criterion(state_next_pred[..., :3], state_t_next[..., :3])
 	vel_loss_t_next = criterion(
 		state_next_pred[..., 3:6], state_t_next[..., 3:6]
 	)
@@ -286,9 +276,7 @@ def validate_epoch(model, dataloader, criterion, device, epoch, writer):
 			loss = fd_loss + decoder_loss
 
 			# Remove local_goal for component analysis
-			state_t = torch.cat(
-				[state_t[..., :3], state_t[..., 6:]], dim=-1
-			)
+			state_t = torch.cat([state_t[..., :3], state_t[..., 6:]], dim=-1)
 			state_pred = torch.cat(
 				[state_pred[..., :3], state_pred[..., 6:]], dim=-1
 			)
@@ -300,18 +288,10 @@ def validate_epoch(model, dataloader, criterion, device, epoch, writer):
 			)
 
 			# Component losses
-			pos_loss_t = criterion(
-				state_pred[..., :3], state_t[..., :3]
-			)
-			vel_loss_t = criterion(
-				state_pred[..., 3:6], state_t[..., 3:6]
-			)
-			flipped_loss_t = criterion(
-				state_pred[..., 6:7], state_t[..., 6:7]
-			)
-			orient_loss_t = criterion(
-				state_pred[..., 7:], state_t[..., 7:]
-			)
+			pos_loss_t = criterion(state_pred[..., :3], state_t[..., :3])
+			vel_loss_t = criterion(state_pred[..., 3:6], state_t[..., 3:6])
+			flipped_loss_t = criterion(state_pred[..., 6:7], state_t[..., 6:7])
+			orient_loss_t = criterion(state_pred[..., 7:], state_t[..., 7:])
 
 			pos_loss_t_next = criterion(
 				state_next_pred[..., :3], state_t_next[..., :3]
@@ -358,9 +338,7 @@ def validate_epoch(model, dataloader, criterion, device, epoch, writer):
 
 			# Collect errors for histograms
 			all_h_errors.append((h_t_next_pred - h_t_next).abs().cpu())
-			all_state_errors.append(
-				(state_pred - state_t).abs().cpu()
-			)
+			all_state_errors.append((state_pred - state_t).abs().cpu())
 
 			pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
@@ -544,7 +522,7 @@ def main(
 	val_interval,
 	weight_log_interval,
 	seed,
-	hidden_size
+	hidden_size,
 ):
 	"""
 	Train forward dynamics + decoder model.
