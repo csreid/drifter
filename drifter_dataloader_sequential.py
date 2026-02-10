@@ -156,6 +156,9 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 		initial_position = np.array(
 			[first_frame[0], first_frame[1], first_frame[2]]
 		)
+		initial_orientation = np.array(
+			[first_frame[3], first_frame[4], first_frame[5], first_frame[6]]
+		)
 
 		for row in rows:
 			# Parse state components
@@ -168,9 +171,12 @@ class DrifterSequenceDataset(SequentialDatabaseDataset):
 			goal = np.array([row[13], row[14], row[15]], dtype=np.float32)
 
 			# Convert position to body-relative frame
-			# (relative to initial position, then rotated to body frame)
+			# Position relative to start, rotated into initial body frame
+			# This normalizes the sequence start to ~(0,0,0)
 			relative_position = position - initial_position
-			position_body = world_to_body_frame(orientation, relative_position)
+			position_body = world_to_body_frame(
+				initial_orientation, relative_position
+			)
 
 			# Convert velocity to body-relative frame
 			velocity_body = world_to_body_frame(orientation, velocity)
