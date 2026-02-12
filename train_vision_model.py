@@ -294,7 +294,7 @@ def validate(
 @click.option(
 	"--log_dir",
 	type=str,
-	default="runs/vision_model",
+	default=None,
 	help="TensorBoard log directory",
 )
 @click.option(
@@ -310,6 +310,9 @@ def validate(
 	help="Fraction of data for test set",
 )
 def main(train_db, epochs, batch_size, log_dir, validate_every, test_split):
+	if log_dir is None:
+		log_dir = f"runs/vision_model/{datetime.now():%Y%m%d-%H%M%S}"
+
 	writer = SummaryWriter(log_dir)
 
 	# Create output directory for models
