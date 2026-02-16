@@ -61,14 +61,30 @@ class EnvModel(Module):
 
 		self._rnn = LSTM(hidden_size, hidden_size, batch_first=True)
 
-		self._dynamics_output_heads = ModuleDict(
-			{
-				"position": Linear(hidden_size, 3),
-				"velocity": Linear(hidden_size, 3),
-				"is_flipped": Linear(hidden_size, 1),
-				"orientation": Linear(hidden_size, 4),
-			}
-		)
+		self._dynamics_output_heads = ModuleDict({
+		"position": Sequential(
+				Linear(hidden_size, hidden_size // 2),
+				LeakyReLU(),
+				Linear(hidden_size // 2, hidden_size // 4),
+				ReLU(),
+				Linear(hidden_size // 4, 3)
+		),
+		"velocity": Sequential(
+				Linear(hidden_size, hidden_size // 2),
+				LeakyReLU(),
+				Linear(hidden_size // 2, 3)
+		),
+		"is_flipped": Sequential(
+				Linear(hidden_size, hidden_size // 4),
+				LeakyReLU(),
+				Linear(hidden_size // 4, 1)
+		),
+		"orientation": Sequential(
+				Linear(hidden_size, hidden_size // 2),
+				LeakyReLU(),
+				Linear(hidden_size // 2, 4)
+		),
+	})
 
 		action_size = 2
 

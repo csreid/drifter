@@ -418,7 +418,7 @@ def main(
 	table_name,
 	episode_column,
 	id_column,
-	hidden_size
+	hidden_size,
 ):
 	"""
 	Pre-compute embeddings for forward dynamics training.

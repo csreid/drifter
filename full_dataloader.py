@@ -8,6 +8,35 @@ import random
 import gzip
 
 
+def orientation_relative(quat, initial_quat):
+	"""
+	Compute relative orientation between two quaternions.
+
+	Args:
+	    quat: Current orientation as [w, x, y, z]
+	    initial_quat: Initial orientation as [w, x, y, z]
+
+	Returns:
+	    Relative quaternion such that initial orientation becomes [1, 0, 0, 0]
+	"""
+	# Quaternion inverse: for unit quaternions, it's the conjugate [w, -x, -y, -z]
+	w0, x0, y0, z0 = initial_quat
+	initial_inv = np.array([w0, -x0, -y0, -z0])
+
+	# Quaternion multiplication: initial_inv * quat
+	w1, x1, y1, z1 = initial_inv
+	w2, x2, y2, z2 = quat
+
+	return np.array(
+		[
+			w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,  # w
+			w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,  # x
+			w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,  # y
+			w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,  # z
+		]
+	)
+
+
 class ForwardDynamicsDecoderDataset(Dataset):
 	"""
 	Dataset for training forward dynamics + decoder in latent space.
@@ -186,9 +215,6 @@ class ForwardDynamicsDecoderDataset(Dataset):
 			"position_x",
 			"position_y",
 			"position_z",
-			"local_goal_x",
-			"local_goal_y",
-			"local_goal_z",
 			"velocity_x",
 			"velocity_y",
 			"velocity_z",
@@ -211,15 +237,18 @@ class ForwardDynamicsDecoderDataset(Dataset):
 		return cursor.fetchall()
 
 	def _parse_state(
-		self, row: Tuple, initial_position: np.ndarray
+		self,
+		row: Tuple,
+		initial_position: np.ndarray,
+		initial_orientation: np.ndarray,
 	) -> np.ndarray:
 		"""
 		Parse state variables from a database row.
 
-		Makes positions relative to initial_position.
+		Makes positions relative to initial_position and orientation relative to initial_orientation.
 
 		Returns:
-		    state: [14] array with [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
+		    state: [11] array with [pos(3), vel(3), is_flipped(1), orient(4)]
 		"""
 		(
 			_camera_blob,
@@ -232,9 +261,6 @@ class ForwardDynamicsDecoderDataset(Dataset):
 			pos_x,
 			pos_y,
 			pos_z,
-			local_goal_x,
-			local_goal_y,
-			local_goal_z,
 			vel_x,
 			vel_y,
 			vel_z,
@@ -247,14 +273,12 @@ class ForwardDynamicsDecoderDataset(Dataset):
 
 		# Make position relative to start
 		position = np.array([pos_x, pos_y, pos_z]) - initial_position
-		local_goal = np.array([local_goal_x, local_goal_y, local_goal_z])
 		velocity = np.array([vel_x, vel_y, vel_z])
-		orientation = np.array([orient_0, orient_1, orient_2, orient_3])
+		org_orientation = np.array([orient_0, orient_1, orient_2, orient_3])
+		orientation = orientation_relative(org_orientation, initial_orientation)
 
-		# Concatenate: [pos(3), local_goal(3), vel(3), is_flipped(1), orient(4)]
-		state = np.concatenate(
-			[position, local_goal, velocity, [is_flipped], orientation]
-		)
+		# Concatenate: [pos(3), vel(3), is_flipped(1), orient(4)]
+		state = np.concatenate([position, velocity, [is_flipped], orientation])
 
 		return state
 
@@ -300,6 +324,9 @@ class ForwardDynamicsDecoderDataset(Dataset):
 		initial_position = np.array(
 			[rows[0][7], rows[0][8], rows[0][9]]
 		)  # position_x, y, z
+		initial_orientation = np.array(
+			[rows[0][13], rows[0][14], rows[0][15], rows[0][16]]
+		)  # orientation_0, 1, 2, 3
 
 		# Parse images, actions, and states
 		images = []
@@ -318,8 +345,10 @@ class ForwardDynamicsDecoderDataset(Dataset):
 			action_0, action_1 = row[5], row[6]
 			actions.append([action_0, action_1])
 
-			# Parse state (relative to initial position)
-			state = self._parse_state(row, initial_position)
+			# Parse state (relative to initial position and orientation)
+			state = self._parse_state(
+				row, initial_position, initial_orientation
+			)
 			states.append(state)
 
 		# Convert to tensors
@@ -329,7 +358,7 @@ class ForwardDynamicsDecoderDataset(Dataset):
 		actions = torch.tensor(actions, dtype=torch.float32)  # [seq_len, 2]
 		states = torch.tensor(
 			np.stack(states), dtype=torch.float32
-		)  # [seq_len, 14]
+		)  # [seq_len, 11]
 
 		num_transitions = (
 			seq_len - self.lstm_context
@@ -387,10 +416,10 @@ class ForwardDynamicsDecoderDataset(Dataset):
 		h_t_next_batch = torch.stack(
 			h_t_next_list
 		)  # [num_transitions, hidden_dim]
-		state_t_batch = torch.stack(state_t_list)  # [num_transitions, 14]
+		state_t_batch = torch.stack(state_t_list)  # [num_transitions, 11]
 		state_t_next_batch = torch.stack(
 			state_t_next_list
-		)  # [num_transitions, 14]
+		)  # [num_transitions, 11]
 
 		val = (
 			h_t_batch,

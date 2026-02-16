@@ -157,9 +157,9 @@ def main(
 	output_dir.mkdir(parents=True, exist_ok=True)
 
 	model = EnvModel(hidden_size=hidden_size)
-	wts = torch.load(
-		id_model, map_location=torch.device(device)
-	)['model_state_dict']
+	wts = torch.load(id_model, map_location=torch.device(device))[
+		"model_state_dict"
+	]
 	model.load_state_dict(wts)
 	model.train()
 
