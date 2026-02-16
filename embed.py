@@ -418,6 +418,7 @@ def main(
 	table_name,
 	episode_column,
 	id_column,
+	hidden_size
 ):
 	"""
 	Pre-compute embeddings for forward dynamics training.
@@ -429,7 +430,7 @@ def main(
 
 	click.echo(f"Loading inverse dynamics model from {id_model}...")
 	model_sd = torch.load(id_model, map_location=device)["model_state_dict"]
-	model = EnvModel()
+	model = EnvModel(hidden_size)
 	model.load_state_dict(model_sd)
 	model.eval()
 	model.to(device)

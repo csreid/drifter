@@ -125,6 +125,9 @@ def train_epoch(model, dataloader, optimizer, criterion, device, epoch):
 )
 # Other arguments
 @click.option("--seed", type=int, default=42, help="Random seed")
+@click.option(
+	"--hidden_size", type=int, default=512, help="Hidden size for the model"
+)
 def main(
 	train_db,
 	id_model,
@@ -139,6 +142,7 @@ def main(
 	val_frac,
 	seed,
 	description,
+	hidden_size,
 ):
 	# Set random seeds for reproducibility
 	torch.manual_seed(seed)
@@ -152,9 +156,11 @@ def main(
 	output_dir = Path(output_dir)
 	output_dir.mkdir(parents=True, exist_ok=True)
 
-	model = torch.load(
-		id_model, weights_only=False, map_location=torch.device(device)
+	model = EnvModel(hidden_size=hidden_size)
+	wts = torch.load(
+		id_model, map_location=torch.device(device)
 	)
+	model.load_state_dict(wts)
 	model.train()
 
 	# Create dataloaders
