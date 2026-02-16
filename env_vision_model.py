@@ -67,7 +67,7 @@ class EnvModel(Module):
 					Linear(hidden_size, hidden_size // 2),
 					LeakyReLU(),
 					Linear(hidden_size // 2, hidden_size // 4),
-					ReLU(),
+					LeakyReLU(),
 					Linear(hidden_size // 4, 3),
 				),
 				"velocity": Sequential(
