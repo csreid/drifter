@@ -1,6 +1,7 @@
 import sqlite3
 import torch
-from torch.utils.data import Dataset, DataLoader
+import numpy as np
+from torch.utils.data import Dataset, DataLoader, Subset
 from torch.nn.utils.rnn import pad_sequence
 from typing import Tuple, Optional
 import pickle
@@ -158,33 +159,55 @@ def collate_precomputed_embeddings(batch):
 	)
 
 
-def create_precomputed_dataloader(
+def create_precomputed_dataloaders(
 	embedding_db_path: str,
 	batch_size: int = 16,
+	val_fraction: float = 0.2,
 	shuffle: bool = True,
 	num_workers: int = 4,  # Can use more workers since no CUDA operations
 	seed: Optional[int] = None,
-) -> DataLoader:
+) -> Tuple[DataLoader, DataLoader]:
 	"""
-	Create a DataLoader for pre-computed embeddings.
+	Create training and validation DataLoaders for pre-computed embeddings.
 
 	Args:
 	    embedding_db_path: Path to the SQLite database with pre-computed embeddings
 	    batch_size: Batch size
-	    shuffle: Whether to shuffle
+	    val_fraction: Fraction of data to use for validation (0.0 to 1.0)
+	    shuffle: Whether to shuffle the training data
 	    num_workers: Number of worker processes
 	    seed: Random seed for reproducibility
 
 	Returns:
-	    DataLoader instance
+	    Tuple of (train_dataloader, val_dataloader)
 	"""
 	dataset = PrecomputedEmbeddingDataset(
 		embedding_db_path=embedding_db_path,
 		seed=seed,
 	)
 
-	dataloader = DataLoader(
-		dataset,
+	# Create train/val split
+	dataset_size = len(dataset)
+	val_size = int(dataset_size * val_fraction)
+	train_size = dataset_size - val_size
+
+	# Shuffle indices for random split
+	indices = np.arange(dataset_size)
+	rng = np.random.RandomState(seed if seed is not None else 42)
+	rng.shuffle(indices)
+
+	train_indices = indices[:train_size]
+	val_indices = indices[train_size:]
+
+	# Create subset datasets
+	train_dataset = Subset(dataset, train_indices)
+	val_dataset = Subset(dataset, val_indices)
+
+	print(f"Dataset split: {train_size} training, {val_size} validation")
+
+	# Create dataloaders
+	train_dataloader = DataLoader(
+		train_dataset,
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
@@ -192,4 +215,13 @@ def create_precomputed_dataloader(
 		pin_memory=True,  # Can use pin_memory now since no GPU operations in dataset
 	)
 
-	return dataloader
+	val_dataloader = DataLoader(
+		val_dataset,
+		batch_size=batch_size,
+		shuffle=False,  # Don't shuffle validation data
+		num_workers=num_workers,
+		collate_fn=collate_precomputed_embeddings,
+		pin_memory=True,
+	)
+
+	return train_dataloader, val_dataloader

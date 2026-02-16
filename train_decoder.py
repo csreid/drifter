@@ -8,7 +8,165 @@ from pathlib import Path
 from datetime import datetime
 from env_vision_model import EnvModel
 
-from precomputed_dataloader import create_precomputed_dataloader
+from precomputed_dataloader import create_precomputed_dataloaders
+
+
+def visualize_trajectory(
+	images, true_states, pred_states, seq_len, writer, step
+):
+	"""
+	Visualize predicted vs true trajectory for a single sequence.
+
+	Args:
+		images: Image sequence [seq_len, C, H, W]
+		true_states: Dict of true state tensors
+		pred_states: Dict of predicted state tensors
+		seq_len: Actual sequence length (for masking padding)
+		writer: TensorBoard SummaryWriter
+		step: Global step for logging
+	"""
+	# Move to CPU and convert to numpy
+	true_pos = true_states["position"][:seq_len].cpu().numpy()  # [seq_len, 3]
+	pred_pos = pred_states["position"][:seq_len].detach().cpu().numpy()
+
+	true_orient = (
+		true_states["orientation"][:seq_len].cpu().numpy()
+	)  # [seq_len, 4]
+	pred_orient = pred_states["orientation"][:seq_len].detach().cpu().numpy()
+
+	true_vel = true_states["velocity"][:seq_len].cpu().numpy()  # [seq_len, 3]
+	pred_vel = pred_states["velocity"][:seq_len].detach().cpu().numpy()
+
+	# Convert quaternions to yaw for 2D visualization
+	_, _, true_yaw = quaternion_to_euler(true_orient)
+	_, _, pred_yaw = quaternion_to_euler(pred_orient)
+
+	# Create figure with subplots
+	fig = plt.figure(figsize=(16, 10))
+
+	# 1. Top-down trajectory view (position x, y)
+	ax1 = plt.subplot(2, 3, 1)
+	ax1.plot(true_pos[:, 0], true_pos[:, 1], "b-", label="True", linewidth=2)
+	ax1.plot(
+		pred_pos[:, 0], pred_pos[:, 1], "r--", label="Predicted", linewidth=2
+	)
+	ax1.scatter(
+		true_pos[0, 0],
+		true_pos[0, 1],
+		c="green",
+		s=100,
+		marker="o",
+		label="Start",
+	)
+	ax1.scatter(
+		true_pos[-1, 0],
+		true_pos[-1, 1],
+		c="black",
+		s=100,
+		marker="x",
+		label="End",
+	)
+	ax1.set_xlabel("X Position (m)")
+	ax1.set_ylabel("Y Position (m)")
+	ax1.set_title("Top-Down Trajectory")
+	ax1.legend()
+	ax1.grid(True, alpha=0.3)
+	ax1.axis("equal")
+
+	# 2. Position components over time
+	ax2 = plt.subplot(2, 3, 2)
+	time = np.arange(seq_len)
+	ax2.plot(time, true_pos[:, 0], "b-", label="True X", alpha=0.7)
+	ax2.plot(time, pred_pos[:, 0], "b--", label="Pred X", alpha=0.7)
+	ax2.plot(time, true_pos[:, 1], "r-", label="True Y", alpha=0.7)
+	ax2.plot(time, pred_pos[:, 1], "r--", label="Pred Y", alpha=0.7)
+	ax2.plot(time, true_pos[:, 2], "g-", label="True Z", alpha=0.7)
+	ax2.plot(time, pred_pos[:, 2], "g--", label="Pred Z", alpha=0.7)
+	ax2.set_xlabel("Timestep")
+	ax2.set_ylabel("Position (m)")
+	ax2.set_title("Position Components")
+	ax2.legend(fontsize=8)
+	ax2.grid(True, alpha=0.3)
+
+	# 3. Yaw angle over time
+	ax3 = plt.subplot(2, 3, 3)
+	ax3.plot(time, np.degrees(true_yaw), "b-", label="True Yaw", linewidth=2)
+	ax3.plot(time, np.degrees(pred_yaw), "r--", label="Pred Yaw", linewidth=2)
+	ax3.set_xlabel("Timestep")
+	ax3.set_ylabel("Yaw (degrees)")
+	ax3.set_title("Heading Angle")
+	ax3.legend()
+	ax3.grid(True, alpha=0.3)
+
+	# 4. Velocity magnitude
+	ax4 = plt.subplot(2, 3, 4)
+	true_speed = np.linalg.norm(true_vel, axis=1)
+	pred_speed = np.linalg.norm(pred_vel, axis=1)
+	ax4.plot(time, true_speed, "b-", label="True Speed", linewidth=2)
+	ax4.plot(time, pred_speed, "r--", label="Pred Speed", linewidth=2)
+	ax4.set_xlabel("Timestep")
+	ax4.set_ylabel("Speed (m/s)")
+	ax4.set_title("Velocity Magnitude")
+	ax4.legend()
+	ax4.grid(True, alpha=0.3)
+
+	# 5. Velocity components
+	ax5 = plt.subplot(2, 3, 5)
+	ax5.plot(time, true_vel[:, 0], "b-", label="True Vx", alpha=0.7)
+	ax5.plot(time, pred_vel[:, 0], "b--", label="Pred Vx", alpha=0.7)
+	ax5.plot(time, true_vel[:, 1], "r-", label="True Vy", alpha=0.7)
+	ax5.plot(time, pred_vel[:, 1], "r--", label="Pred Vy", alpha=0.7)
+	ax5.plot(time, true_vel[:, 2], "g-", label="True Vz", alpha=0.7)
+	ax5.plot(time, pred_vel[:, 2], "g--", label="Pred Vz", alpha=0.7)
+	ax5.set_xlabel("Timestep")
+	ax5.set_ylabel("Velocity (m/s)")
+	ax5.set_title("Velocity Components (Body Frame)")
+	ax5.legend(fontsize=8)
+	ax5.grid(True, alpha=0.3)
+
+	# 6. Trajectory with velocity vectors
+	ax6 = plt.subplot(2, 3, 6)
+	# Plot every Nth point to avoid clutter
+	skip = max(1, seq_len // 10)
+	for i in range(0, seq_len, skip):
+		# True trajectory arrows
+		ax6.arrow(
+			true_pos[i, 0],
+			true_pos[i, 1],
+			true_vel[i, 0] * 0.1,
+			true_vel[i, 1] * 0.1,
+			head_width=0.05,
+			head_length=0.03,
+			fc="blue",
+			ec="blue",
+			alpha=0.5,
+		)
+		# Predicted trajectory arrows
+		ax6.arrow(
+			pred_pos[i, 0],
+			pred_pos[i, 1],
+			pred_vel[i, 0] * 0.1,
+			pred_vel[i, 1] * 0.1,
+			head_width=0.05,
+			head_length=0.03,
+			fc="red",
+			ec="red",
+			alpha=0.5,
+		)
+
+	ax6.plot(true_pos[:, 0], true_pos[:, 1], "b-", alpha=0.3, linewidth=1)
+	ax6.plot(pred_pos[:, 0], pred_pos[:, 1], "r--", alpha=0.3, linewidth=1)
+	ax6.set_xlabel("X Position (m)")
+	ax6.set_ylabel("Y Position (m)")
+	ax6.set_title("Trajectory with Velocity Vectors")
+	ax6.grid(True, alpha=0.3)
+	ax6.axis("equal")
+
+	plt.tight_layout()
+
+	# Save to tensorboard
+	writer.add_figure("validation/trajectory", fig, step)
+	plt.close(fig)
 
 
 def fit_batch(model, optimizer, criterion, batch, device):
@@ -227,7 +385,7 @@ def train_epoch(
 	return avg_losses, global_step
 
 
-def validate_epoch(model, dataloader, criterion, device, epoch, writer):
+def validate_epoch(model, dataloader, criterion, device, epoch, writer, reference_sample):
 	"""Validate for one epoch."""
 	model.eval()
 
@@ -339,6 +497,22 @@ def validate_epoch(model, dataloader, criterion, device, epoch, writer):
 			# Collect errors for histograms
 			all_h_errors.append((h_t_next_pred - h_t_next).abs().cpu())
 			all_state_errors.append((state_pred - state_t).abs().cpu())
+
+			if reference_sample is not None:
+				ref_images, ref_states, ref_seq_len = reference_sample
+				ref_predictions, ref_pred_dict = model(
+					ref_images.to(device), [ref_seq_len]
+				)
+
+				# Extract first sample from batch
+				visualize_trajectory(
+					ref_images[0],
+					{k: v[0] for k, v in ref_states.items()},
+					{k: v[0] for k, v in ref_pred_dict.items()},
+					ref_seq_len,
+					writer,
+					step,
+				)
 
 			pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
@@ -538,7 +712,7 @@ def main(
 
 	# Create dataloaders
 	click.echo("Creating dataloaders...")
-	train_dataloader = create_precomputed_dataloader(
+	train_dataloader, test_dataloader = create_precomputed_dataloaders(
 		embedding_db_path=train_db,
 		batch_size=batch_size,
 		shuffle=True,
@@ -546,15 +720,17 @@ def main(
 		seed=seed,
 	)
 
-	val_dataloader = None
-	if val_db:
-		val_dataloader = create_precomputed_dataloader(
-			embedding_db_path=val_db,
-			batch_size=batch_size,
-			shuffle=False,
-			num_workers=num_workers,
-			seed=seed,
+	# Get a reference sample from test set for visualization
+	reference_sample = None
+	for images, states, seq_lens in test_dataloader:
+		# Take first sample from first batch as reference
+		reference_sample = (
+			images[0:1],  # Keep batch dimension
+			{k: v[0:1] for k, v in states.items()},
+			seq_lens[0].item(),
 		)
+		print(f"Reference trajectory length: {seq_lens[0].item()}")
+		break
 
 	# Load model
 	click.echo(f"Loading model from {model}...")
@@ -637,7 +813,7 @@ def main(
 		val_losses = None
 		if val_dataloader and (epoch % val_interval == 0):
 			val_losses = validate_epoch(
-				net, val_dataloader, criterion, device, epoch, writer
+				net, val_dataloader, criterion, device, epoch, writer, reference_sample
 			)
 			click.echo(
 				f"  Val: loss={val_losses['total_loss']:.4f}, "
