@@ -385,7 +385,9 @@ def train_epoch(
 	return avg_losses, global_step
 
 
-def validate_epoch(model, dataloader, criterion, device, epoch, writer, reference_sample):
+def validate_epoch(
+	model, dataloader, criterion, device, epoch, writer, reference_sample
+):
 	"""Validate for one epoch."""
 	model.eval()
 
@@ -813,7 +815,13 @@ def main(
 		val_losses = None
 		if val_dataloader and (epoch % val_interval == 0):
 			val_losses = validate_epoch(
-				net, val_dataloader, criterion, device, epoch, writer, reference_sample
+				net,
+				val_dataloader,
+				criterion,
+				device,
+				epoch,
+				writer,
+				reference_sample,
 			)
 			click.echo(
 				f"  Val: loss={val_losses['total_loss']:.4f}, "

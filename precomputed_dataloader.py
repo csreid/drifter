@@ -29,17 +29,21 @@ class PrecomputedEmbeddingDataset(Dataset):
 		if seed is not None:
 			torch.manual_seed(seed)
 
-		# Connect to database
-		self.conn = sqlite3.connect(embedding_db_path, check_same_thread=False)
+		# Get count of embeddings (don't keep connection open)
 		self._build_index()
 
 	def _build_index(self):
 		"""Build an index of all available embeddings."""
-		cursor = self.conn.cursor()
+		# Open temporary connection just to get rowids
+		conn = sqlite3.connect(self.db_path)
+		cursor = conn.cursor()
 
-		# Get count of embeddings
-		cursor.execute("SELECT COUNT(*) FROM embeddings")
-		self.num_samples = cursor.fetchone()[0]
+		# Get all rowids in order
+		cursor.execute("SELECT rowid FROM embeddings ORDER BY rowid")
+		self.rowids = [row[0] for row in cursor.fetchall()]
+		self.num_samples = len(self.rowids)
+
+		conn.close()
 
 		if self.num_samples == 0:
 			raise ValueError(
@@ -71,22 +75,34 @@ class PrecomputedEmbeddingDataset(Dataset):
 		    next_states: [num_transitions, state_dim] - ground truth states at t+1
 		    num_transitions: int - actual number of transitions in this sequence
 		"""
-		cursor = self.conn.cursor()
+		# Validate index
+		if idx < 0 or idx >= self.num_samples:
+			raise IndexError(
+				f"Index {idx} out of range [0, {self.num_samples})"
+			)
 
-		# Fetch embedding by rowid (SQLite's implicit row number)
-		# Note: rowid starts at 1, so we add 1 to idx
+		# Get the actual rowid for this index
+		rowid = self.rowids[idx]
+
+		# Open a new connection for each access (required for multi-process data loading)
+		conn = sqlite3.connect(self.db_path)
+		cursor = conn.cursor()
+
+		# Fetch embedding by rowid
 		cursor.execute(
 			"""
             SELECT h_t, a_t, h_t_next, state_t, state_t_next, num_transitions
             FROM embeddings
             WHERE rowid = ?
         """,
-			(idx + 1,),
+			(rowid,),
 		)
 
 		row = cursor.fetchone()
+		conn.close()
+
 		if row is None:
-			raise IndexError(f"Index {idx} out of range")
+			raise IndexError(f"Rowid {rowid} not found (index {idx})")
 
 		(
 			h_t_blob,
@@ -105,11 +121,6 @@ class PrecomputedEmbeddingDataset(Dataset):
 		state_t_next = torch.from_numpy(pickle.loads(state_t_next_blob))
 
 		return h_t, a_t, h_t_next, state_t, state_t_next, num_transitions
-
-	def __del__(self):
-		"""Close database connection when dataset is deleted."""
-		if hasattr(self, "conn"):
-			self.conn.close()
 
 
 def collate_precomputed_embeddings(batch):

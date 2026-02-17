@@ -7,3 +7,4 @@ model.pt
 *.db
 *.mp4
 model.pth
+outputs
