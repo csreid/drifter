@@ -235,18 +235,19 @@ def fit_batch(model, optimizer, criterion, batch, device):
 	optimizer.zero_grad()
 
 	# Forward pass
-	h_t_next_pred = model.forward_dynamics_from_hidden(h_t, a_t, 0)
+	#h_t_next_pred = model.forward_dynamics_from_hidden(h_t, a_t, 0)
+	h_t_next_pored = 0
 	state_pred, outputs_t = model.decode_state(h_t, 0)
-	state_next_pred, outputs_t_next = model.decode_state(h_t_next, 0)
+	#state_next_pred, outputs_t_next = model.decode_state(h_t_next, 0)
 
 	# Compute losses
-	fd_loss = criterion(h_t_next_pred, h_t_next)
+	#fd_loss = criterion(h_t_next_pred, h_t_next)
+	fd_loss = 0
 	decoder_loss_t = criterion(state_pred, state_t)
 	decoder_loss_t_next = criterion(state_next_pred, state_t_next)
 	decoder_loss = decoder_loss_t + decoder_loss_t_next
 
-	# Compute per-component decoder losses (state has 14 dims: pos(3), vel(3), flipped(1), orient(4))
-	# Remove local_goal from comparison
+	# Compute per-component decoder losses (state has 11 dims: pos(3), vel(3), flipped(1), orient(4))
 
 	# Component losses (without local_goal)
 	pos_loss_t = criterion(state_pred[..., :3], state_t[..., :3])
