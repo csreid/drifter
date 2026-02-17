@@ -264,7 +264,7 @@ def fit_batch(model, optimizer, criterion, batch, device):
 		state_next_pred[..., 7:], state_t_next[..., 7:]
 	)
 
-	decoder_loss = torch.sum(torch.tensor([
+	decoder_loss = torch.stack([
 		pos_loss_t,
 		vel_loss_t,
 		flipped_loss_t,
@@ -281,7 +281,7 @@ def fit_batch(model, optimizer, criterion, batch, device):
 		vel_loss_t_next,
 		flipped_loss_t_next,
 		orient_loss_t_next,
-	]))
+	])
 
 	# Total loss
 	loss = fd_loss + decoder_loss
