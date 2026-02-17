@@ -16,30 +16,32 @@ from precomputed_dataloader import create_precomputed_dataloaders
 def state_tensor_to_dict(state_tensor):
 	"""
 	Convert flat state tensor to dict format for visualization.
-	
-	State tensor has 14 dims: pos(3), local_goal(3), vel(3), flipped(1), orient(4)
-	But for visualization we only use: pos(3), vel(3), flipped(1), orient(4)
-	
+
+	State tensor has 11 dims: pos(3), vel(3), flipped(1), orient(4)
+	Note: local_goal has already been removed from the dataloader output
+
 	Args:
-		state_tensor: [batch_size, seq_len, 14] or [seq_len, 14]
-	
+		state_tensor: [batch_size, seq_len, 11] or [seq_len, 11]
+
 	Returns:
 		dict with keys: position, velocity, orientation (quaternion in [w,x,y,z] format)
 	"""
 	# Handle both batched and unbatched inputs
 	if state_tensor.dim() == 2:
-		# [seq_len, 14]
+		# [seq_len, 11]
 		return {
 			"position": state_tensor[..., :3],  # [seq_len, 3]
-			"velocity": state_tensor[..., 6:9],  # [seq_len, 3] (skip local_goal at 3:6)
-			"orientation": state_tensor[..., 10:14],  # [seq_len, 4] (skip flipped at 9:10)
+			"velocity": state_tensor[..., 3:6],  # [seq_len, 3]
+			"orientation": state_tensor[
+				..., 7:11
+			],  # [seq_len, 4] (skip flipped at 6:7)
 		}
 	else:
-		# [batch_size, seq_len, 14]
+		# [batch_size, seq_len, 11]
 		return {
 			"position": state_tensor[..., :3],  # [batch_size, seq_len, 3]
-			"velocity": state_tensor[..., 6:9],  # [batch_size, seq_len, 3]
-			"orientation": state_tensor[..., 10:14],  # [batch_size, seq_len, 4]
+			"velocity": state_tensor[..., 3:6],  # [batch_size, seq_len, 3]
+			"orientation": state_tensor[..., 7:11],  # [batch_size, seq_len, 4]
 		}
 
 
@@ -63,9 +65,8 @@ def quaternion_to_euler(q):
 
 	return roll, pitch, yaw
 
-def visualize_trajectory(
-	true_states, pred_states, seq_len, writer, step
-):
+
+def visualize_trajectory(true_states, pred_states, seq_len, writer, step):
 	"""
 	Visualize predicted vs true trajectory for a single sequence.
 
@@ -551,7 +552,6 @@ def validate_epoch(
 			all_h_errors.append((h_t_next_pred - h_t_next).abs().cpu())
 			all_state_errors.append((state_pred - state_t).abs().cpu())
 
-
 			pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
 	# Compute averages
@@ -598,26 +598,19 @@ def validate_epoch(
 	# Visualize reference trajectory if provided
 	if reference_sample is not None:
 		ref_h_t, ref_state_t, ref_seq_len = reference_sample
-		
+
 		# Decode the reference hidden state to get predictions
 		with torch.no_grad():
 			ref_state_pred, _ = model.decode_state(ref_h_t.to(device), 0)
-		
-		# Debug: print shapes
-		print(f"DEBUG: ref_state_t shape: {ref_state_t.shape}")
-		print(f"DEBUG: ref_state_pred shape: {ref_state_pred.shape}")
-		print(f"DEBUG: ref_seq_len: {ref_seq_len}")
-		
+
 		# Convert flat tensors to dicts for visualization
-		true_states_dict = state_tensor_to_dict(ref_state_t[0])  # Remove batch dim
-		pred_states_dict = state_tensor_to_dict(ref_state_pred[0])  # Remove batch dim
-		
-		# Debug: print dict shapes
-		for key in true_states_dict:
-			print(f"DEBUG: true_states_dict[{key}] shape: {true_states_dict[key].shape}")
-		for key in pred_states_dict:
-			print(f"DEBUG: pred_states_dict[{key}] shape: {pred_states_dict[key].shape}")
-		
+		true_states_dict = state_tensor_to_dict(
+			ref_state_t[0]
+		)  # Remove batch dim
+		pred_states_dict = state_tensor_to_dict(
+			ref_state_pred[0]
+		)  # Remove batch dim
+
 		# Visualize
 		visualize_trajectory(
 			true_states_dict,
@@ -791,7 +784,9 @@ def main(
 	)
 
 	# Get a reference sample from test set for visualization
-	h_t, a_t, h_t_next, state_t, state_t_next, seq_lengths = next(iter(test_dataloader))
+	h_t, a_t, h_t_next, state_t, state_t_next, seq_lengths = next(
+		iter(test_dataloader)
+	)
 	seq_len = seq_lengths[0].item()
 	reference_sample = (
 		h_t[0:1],  # [1, seq_len, hidden_dim]
