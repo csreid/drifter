@@ -282,7 +282,7 @@ def fit_batch(model, optimizer, criterion, batch, device):
 
 	return {
 		"total_loss": loss.item(),
-		"fd_loss": fd_loss.item(),
+		"fd_loss": fd_loss#.item(),
 		"decoder_loss": decoder_loss.item(),
 		"decoder_loss_t": decoder_loss_t.item(),
 		#"decoder_loss_t_next": decoder_loss_t_next.item(),
