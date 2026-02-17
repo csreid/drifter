@@ -7,18 +7,72 @@ import click
 from pathlib import Path
 from datetime import datetime
 from env_vision_model import EnvModel
+import matplotlib.pyplot as plt
+import numpy as np
 
 from precomputed_dataloader import create_precomputed_dataloaders
 
 
-def visualize_trajectory(
-	images, true_states, pred_states, seq_len, writer, step
-):
+def state_tensor_to_dict(state_tensor):
+	"""
+	Convert flat state tensor to dict format for visualization.
+
+	State tensor has 14 dims: pos(3), local_goal(3), vel(3), flipped(1), orient(4)
+	But for visualization we only use: pos(3), vel(3), flipped(1), orient(4)
+
+	Args:
+		state_tensor: [batch_size, seq_len, 14] or [seq_len, 14]
+
+	Returns:
+		dict with keys: position, velocity, orientation (quaternion in [w,x,y,z] format)
+	"""
+	# Handle both batched and unbatched inputs
+	if state_tensor.dim() == 2:
+		# [seq_len, 14]
+		return {
+			"position": state_tensor[..., :3],  # [seq_len, 3]
+			"velocity": state_tensor[
+				..., 6:9
+			],  # [seq_len, 3] (skip local_goal at 3:6)
+			"orientation": state_tensor[
+				..., 10:14
+			],  # [seq_len, 4] (skip flipped at 9:10)
+		}
+	else:
+		# [batch_size, seq_len, 14]
+		return {
+			"position": state_tensor[..., :3],  # [batch_size, seq_len, 3]
+			"velocity": state_tensor[..., 6:9],  # [batch_size, seq_len, 3]
+			"orientation": state_tensor[..., 10:14],  # [batch_size, seq_len, 4]
+		}
+
+
+def quaternion_to_euler(q):
+	"""Convert quaternion [w, x, y, z] to euler angles [roll, pitch, yaw]"""
+	w, x, y, z = q[..., 0], q[..., 1], q[..., 2], q[..., 3]
+
+	# Roll (x-axis rotation)
+	sinr_cosp = 2 * (w * x + y * z)
+	cosr_cosp = 1 - 2 * (x * x + y * y)
+	roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+	# Pitch (y-axis rotation)
+	sinp = 2 * (w * y - z * x)
+	pitch = np.arcsin(np.clip(sinp, -1, 1))
+
+	# Yaw (z-axis rotation)
+	siny_cosp = 2 * (w * z + x * y)
+	cosy_cosp = 1 - 2 * (y * y + z * z)
+	yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+	return roll, pitch, yaw
+
+
+def visualize_trajectory(true_states, pred_states, seq_len, writer, step):
 	"""
 	Visualize predicted vs true trajectory for a single sequence.
 
 	Args:
-		images: Image sequence [seq_len, C, H, W]
 		true_states: Dict of true state tensors
 		pred_states: Dict of predicted state tensors
 		seq_len: Actual sequence length (for masking padding)
@@ -500,22 +554,6 @@ def validate_epoch(
 			all_h_errors.append((h_t_next_pred - h_t_next).abs().cpu())
 			all_state_errors.append((state_pred - state_t).abs().cpu())
 
-			if reference_sample is not None:
-				ref_images, ref_states, ref_seq_len = reference_sample
-				ref_predictions, ref_pred_dict = model(
-					ref_images.to(device), [ref_seq_len]
-				)
-
-				# Extract first sample from batch
-				visualize_trajectory(
-					ref_images[0],
-					{k: v[0] for k, v in ref_states.items()},
-					{k: v[0] for k, v in ref_pred_dict.items()},
-					ref_seq_len,
-					writer,
-					step,
-				)
-
 			pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
 	# Compute averages
@@ -558,6 +596,31 @@ def validate_epoch(
 			writer.add_histogram(
 				f"val/state_errors/{name}", all_state_errors[..., i], epoch
 			)
+
+	# Visualize reference trajectory if provided
+	if reference_sample is not None:
+		ref_h_t, ref_state_t, ref_seq_len = reference_sample
+
+		# Decode the reference hidden state to get predictions
+		with torch.no_grad():
+			ref_state_pred, _ = model.decode_state(ref_h_t.to(device), 0)
+
+		# Convert flat tensors to dicts for visualization
+		true_states_dict = state_tensor_to_dict(
+			ref_state_t[0]
+		)  # Remove batch dim
+		pred_states_dict = state_tensor_to_dict(
+			ref_state_pred[0]
+		)  # Remove batch dim
+
+		# Visualize
+		visualize_trajectory(
+			true_states_dict,
+			pred_states_dict,
+			ref_seq_len,
+			writer,
+			epoch,
+		)
 
 	return avg_losses
 
@@ -723,16 +786,16 @@ def main(
 	)
 
 	# Get a reference sample from test set for visualization
-	reference_sample = None
-	for images, states, seq_lens in test_dataloader:
-		# Take first sample from first batch as reference
-		reference_sample = (
-			images[0:1],  # Keep batch dimension
-			{k: v[0:1] for k, v in states.items()},
-			seq_lens[0].item(),
-		)
-		print(f"Reference trajectory length: {seq_lens[0].item()}")
-		break
+	h_t, a_t, h_t_next, state_t, state_t_next, seq_lengths = next(
+		iter(test_dataloader)
+	)
+	seq_len = seq_lengths[0].item()
+	reference_sample = (
+		h_t[0:1],  # [1, seq_len, hidden_dim]
+		state_t[0:1],  # [1, seq_len, 14]
+		seq_len,
+	)
+	print(f"Reference trajectory length: {seq_len}")
 
 	# Load model
 	click.echo(f"Loading model from {model}...")
@@ -788,8 +851,8 @@ def main(
 	click.echo(f"  Batch size: {batch_size}")
 	click.echo(f"  Learning rate: {lr}")
 	click.echo(f"  Training samples: {len(train_dataloader.dataset)}")
-	if val_dataloader:
-		click.echo(f"  Validation samples: {len(val_dataloader.dataset)}")
+	if test_dataloader:
+		click.echo(f"  Validation samples: {len(test_dataloader.dataset)}")
 	click.echo()
 
 	for epoch in range(start_epoch, epochs):
@@ -813,10 +876,10 @@ def main(
 
 		# Validate
 		val_losses = None
-		if val_dataloader and (epoch % val_interval == 0):
+		if test_dataloader and (epoch % val_interval == 0):
 			val_losses = validate_epoch(
 				net,
-				val_dataloader,
+				test_dataloader,
 				criterion,
 				device,
 				epoch,
