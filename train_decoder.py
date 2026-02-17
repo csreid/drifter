@@ -236,7 +236,6 @@ def fit_batch(model, optimizer, criterion, batch, device):
 
 	# Forward pass
 	#h_t_next_pred = model.forward_dynamics_from_hidden(h_t, a_t, 0)
-	h_t_next_pored = 0
 	state_pred, outputs_t = model.decode_state(h_t, 0)
 	#state_next_pred, outputs_t_next = model.decode_state(h_t_next, 0)
 
@@ -244,8 +243,8 @@ def fit_batch(model, optimizer, criterion, batch, device):
 	#fd_loss = criterion(h_t_next_pred, h_t_next)
 	fd_loss = 0
 	decoder_loss_t = criterion(state_pred, state_t)
-	decoder_loss_t_next = criterion(state_next_pred, state_t_next)
-	decoder_loss = decoder_loss_t + decoder_loss_t_next
+	#decoder_loss_t_next = criterion(state_next_pred, state_t_next)
+	decoder_loss = decoder_loss_t #+ decoder_loss_t_next
 
 	# Compute per-component decoder losses (state has 11 dims: pos(3), vel(3), flipped(1), orient(4))
 
@@ -255,16 +254,16 @@ def fit_batch(model, optimizer, criterion, batch, device):
 	flipped_loss_t = criterion(state_pred[..., 6:7], state_t[..., 6:7])
 	orient_loss_t = criterion(state_pred[..., 7:], state_t[..., 7:])
 
-	pos_loss_t_next = criterion(state_next_pred[..., :3], state_t_next[..., :3])
-	vel_loss_t_next = criterion(
-		state_next_pred[..., 3:6], state_t_next[..., 3:6]
-	)
-	flipped_loss_t_next = criterion(
-		state_next_pred[..., 6:7], state_t_next[..., 6:7]
-	)
-	orient_loss_t_next = criterion(
-		state_next_pred[..., 7:], state_t_next[..., 7:]
-	)
+#	#pos_loss_t_next = criterion(state_next_pred[..., :3], state_t_next[..., :3])
+#	vel_loss_t_next = criterion(
+#		state_next_pred[..., 3:6], state_t_next[..., 3:6]
+#	)
+#	flipped_loss_t_next = criterion(
+#		state_next_pred[..., 6:7], state_t_next[..., 6:7]
+#	)
+#	orient_loss_t_next = criterion(
+#		state_next_pred[..., 7:], state_t_next[..., 7:]
+#	)
 
 	# Total loss
 	loss = fd_loss + decoder_loss
@@ -286,19 +285,19 @@ def fit_batch(model, optimizer, criterion, batch, device):
 		"fd_loss": fd_loss.item(),
 		"decoder_loss": decoder_loss.item(),
 		"decoder_loss_t": decoder_loss_t.item(),
-		"decoder_loss_t_next": decoder_loss_t_next.item(),
+		#"decoder_loss_t_next": decoder_loss_t_next.item(),
 		"pos_loss_t": pos_loss_t.item(),
 		"vel_loss_t": vel_loss_t.item(),
 		"flipped_loss_t": flipped_loss_t.item(),
 		"orient_loss_t": orient_loss_t.item(),
-		"pos_loss_t_next": pos_loss_t_next.item(),
-		"vel_loss_t_next": vel_loss_t_next.item(),
-		"flipped_loss_t_next": flipped_loss_t_next.item(),
-		"orient_loss_t_next": orient_loss_t_next.item(),
+#		"pos_loss_t_next": pos_loss_t_next.item(),
+#		"vel_loss_t_next": vel_loss_t_next.item(),
+#		"flipped_loss_t_next": flipped_loss_t_next.item(),
+#		"orient_loss_t_next": orient_loss_t_next.item(),
 		"grad_norm": total_norm,
 		# Return predictions for logging
-		"h_t_next_pred": h_t_next_pred.detach(),
-		"h_t_next": h_t_next.detach(),
+		#"h_t_next_pred": h_t_next_pred.detach(),
+		#"h_t_next": h_t_next.detach(),
 		"state_pred": state_pred.detach(),
 		"state_t": state_t.detach(),
 	}
