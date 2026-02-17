@@ -250,7 +250,7 @@ def fit_batch(model, optimizer, criterion, batch, device):
 
 	# Component losses (without local_goal)
 	pos_loss_t = criterion(state_pred[..., :3], state_t[..., :3])
-	vel_loss_t = criterion(state_pred[..., 3:6], state_t[..., 3:6])
+	vel_loss_t = 10 * criterion(state_pred[..., 3:6], state_t[..., 3:6]) # magnify velocity loss
 	flipped_loss_t = criterion(state_pred[..., 6:7], state_t[..., 6:7])
 	orient_loss_t = criterion(state_pred[..., 7:], state_t[..., 7:])
 
