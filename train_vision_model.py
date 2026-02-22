@@ -309,7 +309,20 @@ def validate(
 	default=0.2,
 	help="Fraction of data for test set",
 )
-def main(train_db, epochs, batch_size, log_dir, validate_every, test_split):
+@click.option(
+	"--allow-mid-episode/--no-allow-mid-episode",
+	default=True,
+	help="Allow sequences to start mid-episode (default: True)",
+)
+def main(
+	train_db,
+	epochs,
+	batch_size,
+	log_dir,
+	validate_every,
+	test_split,
+	allow_mid_episode,
+):
 	if log_dir is None:
 		log_dir = f"runs/vision_model/{datetime.now():%Y%m%d-%H%M%S}"
 
@@ -329,6 +342,7 @@ def main(train_db, epochs, batch_size, log_dir, validate_every, test_split):
 		shuffle=True,
 		num_workers=0,
 		test_split=test_split,
+		allow_mid_episode=allow_mid_episode,
 	)
 
 	print(f"Train batches: {len(train_dataloader)}")

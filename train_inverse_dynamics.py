@@ -290,6 +290,11 @@ def plot_predictions_to_tensorboard(
 )
 # Other arguments
 @click.option("--seed", type=int, default=42, help="Random seed")
+@click.option(
+	"--allow-mid-episode/--no-allow-mid-episode",
+	default=True,
+	help="Allow sequences to start mid-episode (default: True)",
+)
 def main(
 	train_db,
 	sequence_length,
@@ -307,6 +312,7 @@ def main(
 	val_frac,
 	seed,
 	description,
+	allow_mid_episode,
 ):
 	# Set random seeds for reproducibility
 	torch.manual_seed(seed)
@@ -331,6 +337,7 @@ def main(
 		num_workers=num_workers,
 		cache_images=cache_images,
 		val_fraction=val_frac,
+		allow_mid_episode=allow_mid_episode,
 	)
 
 	print(f"Training batches: {len(train_loader)}")
