@@ -75,6 +75,7 @@ class DrifterDataset(Dataset):
 		seqlen: int = 1,
 		allow_mid_episode: bool = True,
 		seed: Optional[int] = None,
+		episode_ids: Optional[List[int]] = None,
 	):
 		unknown = [f for f in fields if f not in FIELDS]
 		if unknown:
@@ -85,6 +86,9 @@ class DrifterDataset(Dataset):
 		self.fields = fields
 		self.seqlen = seqlen
 		self.allow_mid_episode = allow_mid_episode
+		self._episode_ids = (
+			set(episode_ids) if episode_ids is not None else None
+		)
 
 		if seed is not None:
 			random.seed(seed)
@@ -117,6 +121,7 @@ class DrifterDataset(Dataset):
 				{"episode_id": ep, "start_id": s, "end_id": e, "length": n}
 				for ep, s, e, n in cursor.fetchall()
 				if n >= self.seqlen
+				and (self._episode_ids is None or ep in self._episode_ids)
 			]
 			if not self.episodes:
 				raise ValueError(f"No episodes with length >= {self.seqlen}")

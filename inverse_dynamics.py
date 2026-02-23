@@ -1,7 +1,9 @@
+import sqlite3
+
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, Subset
-from typing import Optional, Tuple
+from torch.utils.data import DataLoader
+from typing import List, Optional, Tuple
 
 from drifter_dataloader import DrifterDataset
 
@@ -26,18 +28,31 @@ def create_inverse_dynamics_dataloaders(
 	    images:  [B, T, C, H, W]
 	    actions: [B, T, 2]
 	"""
-	dataset = DrifterDataset(
-		db_path=db_path,
-		fields=["images", "action"],
-		seqlen=sequence_length,
-		allow_mid_episode=allow_mid_episode,
-		seed=seed,
+	# Split on episodes to avoid frame-level leakage from overlapping sequences.
+	conn = sqlite3.connect(db_path)
+	cursor = conn.cursor()
+	cursor.execute(
+		"SELECT episode FROM transitions GROUP BY episode HAVING COUNT(*) >= ?",
+		(sequence_length,),
 	)
+	all_episodes: List[int] = [row[0] for row in cursor.fetchall()]
+	conn.close()
 
-	n = len(dataset)
-	indices = np.arange(n)
-	np.random.RandomState(seed).shuffle(indices)
-	val_size = int(n * val_fraction)
+	rng = np.random.RandomState(seed)
+	rng.shuffle(all_episodes)
+	n_val = int(len(all_episodes) * val_fraction)
+	val_episodes = all_episodes[:n_val]
+	train_episodes = all_episodes[n_val:]
+
+	def make_dataset(episode_ids):
+		return DrifterDataset(
+			db_path=db_path,
+			fields=["images", "action"],
+			seqlen=sequence_length,
+			allow_mid_episode=allow_mid_episode,
+			seed=seed,
+			episode_ids=episode_ids,
+		)
 
 	def collate(batch):
 		return (
@@ -46,7 +61,7 @@ def create_inverse_dynamics_dataloaders(
 		)
 
 	train_loader = DataLoader(
-		Subset(dataset, indices[val_size:]),
+		make_dataset(train_episodes),
 		batch_size=batch_size,
 		shuffle=shuffle,
 		num_workers=num_workers,
@@ -55,16 +70,19 @@ def create_inverse_dynamics_dataloaders(
 	)
 	val_loader = (
 		DataLoader(
-			Subset(dataset, indices[:val_size]),
+			make_dataset(val_episodes),
 			batch_size=batch_size,
 			shuffle=False,
 			num_workers=num_workers,
 			collate_fn=collate,
 			**dataloader_kwargs,
 		)
-		if val_size > 0
+		if n_val > 0
 		else None
 	)
 
-	print(f"Dataset split: {n - val_size} training, {val_size} validation")
+	print(
+		f"Episode split: {len(train_episodes)} train, {len(val_episodes)} val"
+		f" (of {len(all_episodes)} total episodes)"
+	)
 	return train_loader, val_loader
